@@ -1,4 +1,5 @@
 package e_commerce.platform.modules.auth.service.impl;
+
 import e_commerce.platform.modules.auth.service.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,32 +27,34 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
+    // ================= REGISTER =================
     @Override
-public UserResponse register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
 
-    log.info("Register user: {}", request.getUsername());
+        log.info("Register user: {}", request.getUsername());
 
-    if (userRepository.existsByUsername(request.getUsername())) {
-        throw new ConflictException("Username already exists");
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ConflictException("Username already exists");
+        }
+
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new ConflictException("Phone already exists");
+        }
+
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .fullName(request.getFullName())
+                .role(Role.USER)
+                .build();
+
+        userRepository.save(user);
+
+        return AuthMapper.toUserResponse(user);
     }
 
-    if (userRepository.existsByPhone(request.getPhone())) {
-        throw new ConflictException("Phone already exists");
-    }
-
-    User user = User.builder()
-            .username(request.getUsername())
-            .password(passwordEncoder.encode(request.getPassword()))
-            .phone(request.getPhone())
-            .fullName(request.getFullName())
-            .role(Role.USER)
-            .build();
-
-    userRepository.save(user);
-
-    return AuthMapper.toUserResponse(user);  
-}
-
+    // ================= LOGIN =================
     @Override
     public AuthResponse login(LoginRequest request) {
 
@@ -67,26 +70,26 @@ public UserResponse register(RegisterRequest request) {
                 user.getRole().name()
         );
 
-        var refreshToken = tokenService.createRefreshToken(user.getUsername());
+        String refreshToken = tokenService.createRefreshToken(user.getUsername());
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
+                .refreshToken(refreshToken) 
                 .role(user.getRole().name())
                 .build();
     }
 
+    // ================= REFRESH =================
     @Override
     public AuthResponse refresh(String refreshToken) {
 
-        var oldToken = tokenService.verifyRefreshToken(refreshToken);
+        String username = tokenService.verifyRefreshToken(refreshToken); 
 
-        //rotate token
+        // rotate token
         tokenService.revokeToken(refreshToken);
+        String newRefreshToken = tokenService.createRefreshToken(username);
 
-        var newToken = tokenService.createRefreshToken(oldToken.getUsername());
-
-        User user = userRepository.findByUsername(oldToken.getUsername())
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         String newAccessToken = tokenService.generateAccessToken(
@@ -96,11 +99,12 @@ public UserResponse register(RegisterRequest request) {
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(newToken.getToken())
+                .refreshToken(newRefreshToken) 
                 .role(user.getRole().name())
                 .build();
     }
 
+    // ================= LOGOUT =================
     @Override
     public void logout(String refreshToken) {
         tokenService.revokeToken(refreshToken);

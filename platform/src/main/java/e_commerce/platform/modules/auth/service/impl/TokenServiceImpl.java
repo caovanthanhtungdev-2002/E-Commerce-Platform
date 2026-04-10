@@ -1,27 +1,23 @@
 package e_commerce.platform.modules.auth.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-import e_commerce.platform.exception.BadRequestException;
+import e_commerce.platform.cache.redis.RedisKey;
+import e_commerce.platform.cache.redis.RedisService;
 import e_commerce.platform.exception.UnauthorizedException;
-import e_commerce.platform.modules.auth.entity.RefreshToken;
-import e_commerce.platform.modules.auth.repository.RefreshTokenRepository;
 import e_commerce.platform.modules.auth.service.TokenService;
 import e_commerce.platform.security.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class TokenServiceImpl implements TokenService {
 
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisService redisService;
     private final JwtTokenProvider jwtTokenProvider;
+
+    private static final long REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 ngày
 
     @Override
     public String generateAccessToken(String username, String role) {
@@ -29,42 +25,38 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public RefreshToken createRefreshToken(String username) {
+    public String createRefreshToken(String username) {
 
-        RefreshToken token = RefreshToken.builder()
-                .token(UUID.randomUUID().toString())
-                .username(username)
-                .expiryDate(LocalDateTime.now().plusDays(7))
-                .revoked(false)
-                .build();
+        String token = UUID.randomUUID().toString();
 
-        return refreshTokenRepository.save(token);
+        redisService.set(
+                RedisKey.refreshToken(token),
+                username,
+                REFRESH_TOKEN_TTL
+        );
+
+        return token;
     }
 
     @Override
-    public RefreshToken verifyRefreshToken(String token) {
+    public String verifyRefreshToken(String token) {
 
-        RefreshToken rt = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
+        Object username = redisService.get(
+                RedisKey.refreshToken(token)
+        );
 
-        if (rt.isRevoked()) {
-            throw new UnauthorizedException("Token revoked");
+        if (username == null) {
+            throw new UnauthorizedException("Invalid refresh token");
         }
 
-        if (rt.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new UnauthorizedException("Token expired");
-        }
-
-        return rt;
+        return username.toString();
     }
 
     @Override
     public void revokeToken(String token) {
 
-        RefreshToken rt = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new BadRequestException("Token not found"));
-
-        rt.setRevoked(true);
-        refreshTokenRepository.save(rt);
+        redisService.delete(
+                RedisKey.refreshToken(token)
+        );
     }
 }

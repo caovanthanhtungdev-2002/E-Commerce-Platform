@@ -1,4 +1,5 @@
-package e_commerce.platform.modules.auth.entity;
+
+/* package e_commerce.platform.modules.auth.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,3 +24,4 @@ public class RefreshToken {
 
     private boolean revoked;  
 }
+*/
