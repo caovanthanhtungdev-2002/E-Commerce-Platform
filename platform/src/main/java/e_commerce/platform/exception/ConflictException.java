@@ -2,13 +2,13 @@ package e_commerce.platform.exception;
 
 import org.springframework.http.HttpStatus;
 
-public class UnauthorizedException extends RuntimeException {
+public class ConflictException extends RuntimeException {
 
     private final HttpStatus status;
 
-    public UnauthorizedException(String message) {
+    public ConflictException(String message) {
         super(message);
-        this.status = HttpStatus.UNAUTHORIZED;
+        this.status = HttpStatus.CONFLICT;
     }
 
     public HttpStatus getStatus() {
