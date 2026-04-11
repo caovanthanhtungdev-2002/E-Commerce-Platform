@@ -49,6 +49,9 @@ public class SecurityConfig {
                     //USER
                     .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 
+                    //Public Product
+                    .requestMatchers("/api/products/**").permitAll()
+
                     //tất cả còn lại phải login
                     .anyRequest().authenticated()
             );
