@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import e_commerce.platform.exception.BadRequestException;
 import e_commerce.platform.exception.ConflictException;
 import e_commerce.platform.exception.UnauthorizedException;
+import e_commerce.platform.modules.audit.service.AuditService;
 import e_commerce.platform.modules.auth.dto.request.LoginRequest;
 import e_commerce.platform.modules.auth.dto.request.RegisterRequest;
 import e_commerce.platform.modules.auth.dto.response.AuthResponse;
@@ -15,6 +16,7 @@ import e_commerce.platform.modules.auth.entity.*;
 import e_commerce.platform.modules.auth.mapper.AuthMapper;
 import e_commerce.platform.modules.auth.repository.*;
 import e_commerce.platform.modules.auth.service.AuthService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +28,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final AuditService auditService;
 
     // ================= REGISTER =================
     @Override
@@ -51,6 +54,9 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
+        //AUDIT
+        auditService.log(user.getUsername(), "REGISTER", "User registered");
+
         return AuthMapper.toUserResponse(user);
     }
 
@@ -72,9 +78,12 @@ public class AuthServiceImpl implements AuthService {
 
         String refreshToken = tokenService.createRefreshToken(user.getUsername());
 
+        //AUDIT
+        auditService.log(user.getUsername(), "LOGIN", "User logged in");
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken) 
+                .refreshToken(refreshToken)
                 .role(user.getRole().name())
                 .build();
     }
@@ -83,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse refresh(String refreshToken) {
 
-        String username = tokenService.verifyRefreshToken(refreshToken); 
+        String username = tokenService.verifyRefreshToken(refreshToken);
 
         // rotate token
         tokenService.revokeToken(refreshToken);
@@ -97,9 +106,12 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().name()
         );
 
+        //AUDIT (ĐÃ SỬA ĐÚNG)
+        auditService.log(user.getUsername(), "REFRESH_TOKEN", "User refreshed token");
+
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken) 
+                .refreshToken(newRefreshToken)
                 .role(user.getRole().name())
                 .build();
     }
@@ -107,6 +119,12 @@ public class AuthServiceImpl implements AuthService {
     // ================= LOGOUT =================
     @Override
     public void logout(String refreshToken) {
+
+        String username = tokenService.verifyRefreshToken(refreshToken);
+
         tokenService.revokeToken(refreshToken);
+
+        //AUDIT
+        auditService.log(username, "LOGOUT", "User logged out");
     }
 }

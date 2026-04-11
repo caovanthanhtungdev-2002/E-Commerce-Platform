@@ -11,8 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import e_commerce.platform.security.handler.CustomAccessDeniedHandler;
+import e_commerce.platform.security.handler.CustomAuthenticationEntryPoint;
 import e_commerce.platform.security.jwt.JwtAuthenticationFilter;
-import e_commerce.platform.security.jwt.JwtEntryPoint;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -20,8 +21,8 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final JwtEntryPoint jwtEntryPoint;
-
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -29,7 +30,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
 
             .exceptionHandling(ex -> ex
-                    .authenticationEntryPoint(jwtEntryPoint)
+                    .authenticationEntryPoint(authenticationEntryPoint)
+                    .accessDeniedHandler(accessDeniedHandler)
             )
 
             .sessionManagement(session -> session
