@@ -9,4 +9,8 @@ public class RedisKey {
     public static String blacklistToken(String token) {
         return "auth:blacklist:" + token;
     }
+    // 
+    public static String product(Long id) {
+    return "product:" + id;
+}
 }

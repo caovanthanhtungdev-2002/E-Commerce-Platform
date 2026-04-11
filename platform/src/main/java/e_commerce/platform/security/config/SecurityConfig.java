@@ -2,6 +2,7 @@ package e_commerce.platform.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -51,6 +52,14 @@ public class SecurityConfig {
 
                     //Public Product
                     .requestMatchers("/api/products/**").permitAll()
+                   
+
+                    // pravate Product
+                    .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
 
                     //tất cả còn lại phải login
                     .anyRequest().authenticated()

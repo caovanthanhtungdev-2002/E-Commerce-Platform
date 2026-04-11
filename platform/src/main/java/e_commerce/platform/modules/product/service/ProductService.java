@@ -2,6 +2,7 @@ package e_commerce.platform.modules.product.service;
 
 import org.springframework.data.domain.Page;
 import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
+import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
 import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 
@@ -16,4 +17,6 @@ public interface ProductService {
     ProductResponse getById(Long id);
 
     Page<ProductResponse> getAll(int page, int size);
+
+    Page<ProductResponse> search(ProductSearchRequest request, int page, int size);
 }

@@ -2,6 +2,7 @@ package e_commerce.platform.modules.product.controller;
 
 import e_commerce.platform.common.response.ApiResponse;
 import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
+import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
 import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 import e_commerce.platform.modules.product.service.ProductService;
@@ -23,6 +24,15 @@ public class ProductController {
         return new ApiResponse<>(true, "Created", productService.create(request));
     }
 
+    @PostMapping("/search")
+    public ApiResponse<Page<ProductResponse>> search(
+            @RequestBody ProductSearchRequest request,
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
+        return new ApiResponse<>(true, "Success",
+                productService.search(request, page, size));
+    }
     @PutMapping("/{id}")
     public ApiResponse<ProductResponse> update(
             @PathVariable Long id,

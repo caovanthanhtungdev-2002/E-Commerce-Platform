@@ -31,7 +31,13 @@ public class Product {
 
     private boolean active;
 
+    private boolean deleted;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private String createdBy;
+    
+    private String updatedBy;
 }
