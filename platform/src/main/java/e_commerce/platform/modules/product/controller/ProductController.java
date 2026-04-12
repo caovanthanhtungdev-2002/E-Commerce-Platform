@@ -6,7 +6,7 @@ import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
 import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 import e_commerce.platform.modules.product.service.ProductService;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -20,7 +20,7 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ApiResponse<ProductResponse> create(@RequestBody CreateProductRequest request) {
+    public ApiResponse<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
         return new ApiResponse<>(true, "Created", productService.create(request));
     }
 

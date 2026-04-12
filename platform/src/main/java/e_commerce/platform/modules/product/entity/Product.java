@@ -2,7 +2,7 @@ package e_commerce.platform.modules.product.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import e_commerce.platform.modules.category.entity.Category;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,7 +25,7 @@ public class Product {
     @Column(nullable = false)
     private Double price;
 
-    private Integer stock;
+    // private Integer stock;
 
     private String imageUrl;
 
@@ -40,4 +40,9 @@ public class Product {
     private String createdBy;
     
     private String updatedBy;
+    
+    //category
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 }

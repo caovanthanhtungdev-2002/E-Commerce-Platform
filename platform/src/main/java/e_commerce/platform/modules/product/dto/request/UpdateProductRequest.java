@@ -10,4 +10,5 @@ public class UpdateProductRequest {
     private Integer stock;
     private String imageUrl;
     private Boolean active;
+    private Long categoryId;
 }
