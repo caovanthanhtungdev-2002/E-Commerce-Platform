@@ -9,8 +9,14 @@ public class RedisKey {
     public static String blacklistToken(String token) {
         return "auth:blacklist:" + token;
     }
-    // 
+
+    //redis cho products
     public static String product(Long id) {
     return "product:" + id;
-}
+    }
+
+    //redis cho category
+    public static String categoryList() {
+    return "category:list";
+    }
 }

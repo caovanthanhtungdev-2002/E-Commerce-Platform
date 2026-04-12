@@ -26,4 +26,8 @@ public class Inventory {
     private Integer reserved; 
 
     private Integer sold;
+    
+    @Version 
+    private Long version;
+
 }

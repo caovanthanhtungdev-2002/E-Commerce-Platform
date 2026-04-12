@@ -7,4 +7,10 @@ public interface InventoryService {
     void decreaseStock(Long productId, Integer quantity);
 
     void increaseStock(Long productId, Integer quantity);
+    
+    void reserveStock(Long productId, Integer quantity);
+
+    void confirmOrder(Long productId, Integer quantity);
+
+    void releaseStock(Long productId, Integer quantity);
 }
