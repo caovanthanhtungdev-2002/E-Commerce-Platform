@@ -18,6 +18,7 @@ public class RedisKey {
     //redis cho category
     public static String categoryList() {
     return "category:list";
+    
     }
 
     //redis cho cart
