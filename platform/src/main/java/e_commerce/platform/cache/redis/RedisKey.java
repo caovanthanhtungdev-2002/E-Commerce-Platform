@@ -2,27 +2,35 @@ package e_commerce.platform.cache.redis;
 
 public class RedisKey {
 
+    // AUTH
     public static String refreshToken(String token) {
-        return "auth:refresh:" + token;
+        return "ecommerce:auth:refresh:" + token;
     }
 
     public static String blacklistToken(String token) {
-        return "auth:blacklist:" + token;
+        return "ecommerce:auth:blacklist:" + token;
     }
 
-    //redis cho products
+    // PRODUCT
     public static String product(Long id) {
-    return "product:" + id;
+        return "ecommerce:product:" + id;
     }
 
-    //redis cho category
+    public static String productList(int page, int size) {
+        return "ecommerce:product:list:" + page + ":" + size;
+    }
+
+    public static String productList() {
+        return "ecommerce:product:list";
+    }
+
+    // CATEGORY
     public static String categoryList() {
-    return "category:list";
-    
+        return "ecommerce:category:list";
     }
 
-    //redis cho cart
+    // CART
     public static String cart(String username) {
-    return "cart:" + username;
-}
+        return "ecommerce:cart:" + username;
+    }
 }

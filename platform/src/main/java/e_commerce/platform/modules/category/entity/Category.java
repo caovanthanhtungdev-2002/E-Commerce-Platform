@@ -23,7 +23,16 @@ public class Category {
 
     private String description;
 
-    private Boolean isActive;
+    @Builder.Default
+    private Boolean deleted = false;
+
+    @Builder.Default
+    private Boolean isActive = true;
 
     private LocalDateTime createdAt;
+
+    private String createdBy;
+
+    private String updatedBy;
+    
 }

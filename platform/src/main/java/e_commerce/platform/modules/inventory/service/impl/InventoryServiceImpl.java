@@ -96,6 +96,9 @@ public void confirmOrder(Long productId, Integer quantity) {
     Inventory inventory = inventoryRepository.findByProductId(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
 
+if (inventory.getReserved() < quantity) {
+    throw new BadRequestException("Invalid reserved state");
+}
     inventory.setReserved(inventory.getReserved() - quantity);
     inventory.setStock(inventory.getStock() - quantity);
     inventory.setSold(inventory.getSold() + quantity);
@@ -108,6 +111,10 @@ public void releaseStock(Long productId, Integer quantity) {
 
     Inventory inventory = inventoryRepository.findByProductId(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
+
+if (inventory.getReserved() < quantity) {
+    throw new BadRequestException("Invalid reserved state");
+}
 
     inventory.setReserved(inventory.getReserved() - quantity);
 

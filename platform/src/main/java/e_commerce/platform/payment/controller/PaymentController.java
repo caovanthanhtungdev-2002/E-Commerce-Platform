@@ -5,6 +5,7 @@ import e_commerce.platform.payment.dto.response.CreatePaymentResponse;
 import e_commerce.platform.payment.service.PaymentService;
 
 import lombok.RequiredArgsConstructor;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -26,14 +27,10 @@ public class PaymentController {
     }
 
     //CALLBACK
-    @GetMapping("/callback")
-    public String callback(
-            @RequestParam String transactionId,
-            @RequestParam boolean success
-    ) {
+   @GetMapping("/vnpay/callback")
+public String vnpayCallback(@RequestParam Map<String, String> params) {
 
-        paymentService.handleCallback(transactionId, success);
-
-        return "OK";
-    }
+    return paymentService.handleVNPayCallback(params);
+}
+    
 }

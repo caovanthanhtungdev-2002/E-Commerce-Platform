@@ -2,12 +2,16 @@ package e_commerce.platform.modules.cart.service.impl;
 
 import e_commerce.platform.cache.redis.RedisKey;
 import e_commerce.platform.cache.redis.RedisService;
+import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.modules.cart.dto.response.*;
 import e_commerce.platform.modules.cart.model.CartItem;
 import e_commerce.platform.modules.cart.service.CartService;
 import e_commerce.platform.modules.inventory.service.InventoryService;
+import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
+import e_commerce.platform.payment.entity.Payment;
+import e_commerce.platform.payment.enums.PaymentStatus;
 
 import java.util.stream.Collectors;
 
@@ -144,4 +148,7 @@ public class CartServiceImpl implements CartService {
 
         return new ArrayList<>();
     }
+
+   
+
 }

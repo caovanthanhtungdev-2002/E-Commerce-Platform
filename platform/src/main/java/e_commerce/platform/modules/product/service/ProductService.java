@@ -17,6 +17,7 @@ public interface ProductService {
     ProductResponse getById(Long id);
 
     Page<ProductResponse> getAll(int page, int size);
+    
 
     Page<ProductResponse> search(ProductSearchRequest request, int page, int size);
 }

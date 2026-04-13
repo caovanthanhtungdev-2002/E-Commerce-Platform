@@ -12,26 +12,36 @@ public class ProductSpecification {
 
             var predicate = cb.conjunction();
 
-            if (req.getKeyword() != null) {
+            // keyword
+            if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
                 predicate = cb.and(predicate,
-                        cb.like(root.get("name"), "%" + req.getKeyword() + "%"));
+                        cb.like(cb.lower(root.get("name")),
+                                "%" + req.getKeyword().toLowerCase() + "%"));
             }
 
+            // min price
             if (req.getMinPrice() != null) {
                 predicate = cb.and(predicate,
                         cb.greaterThanOrEqualTo(root.get("price"), req.getMinPrice()));
             }
 
+            // max price
             if (req.getMaxPrice() != null) {
                 predicate = cb.and(predicate,
                         cb.lessThanOrEqualTo(root.get("price"), req.getMaxPrice()));
             }
 
+            // active filter (nếu user truyền)
             if (req.getActive() != null) {
                 predicate = cb.and(predicate,
                         cb.equal(root.get("active"), req.getActive()));
+            } else {
+                // mặc định chỉ lấy active = true
+                predicate = cb.and(predicate,
+                        cb.equal(root.get("active"), true));
             }
 
+            // luôn filter deleted
             predicate = cb.and(predicate,
                     cb.equal(root.get("deleted"), false));
 

@@ -24,7 +24,8 @@ public class Payment {
 
     private Long orderId;
 
-    private String transactionId; // từ gateway
+    @Column(unique = true)
+    private String transactionId;
 
     private Double amount;
 

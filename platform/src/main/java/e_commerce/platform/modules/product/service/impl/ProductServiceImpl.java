@@ -45,7 +45,18 @@ public class ProductServiceImpl implements ProductService {
 
         String username = getCurrentUser();
 
+        // validate price
+        if (request.getPrice() == null || request.getPrice() <= 0) {
+            throw new BadRequestException("Price must be > 0");
+        }
+
+        // validate stock
+        if (request.getStock() == null || request.getStock() < 0) {
+            throw new BadRequestException("Invalid stock");
+        }
+
         Category category = categoryRepository.findById(request.getCategoryId())
+                .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         if (!category.getIsActive()) {
@@ -56,7 +67,6 @@ public class ProductServiceImpl implements ProductService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
-                //.stock(request.getStock())
                 .imageUrl(request.getImageUrl())
                 .active(true)
                 .deleted(false)
@@ -67,11 +77,12 @@ public class ProductServiceImpl implements ProductService {
 
         productRepository.save(product);
 
-        inventoryService.createInventory(
-        product.getId(),
-        request.getStock()
-                                        );
-                                        
+        // create inventory
+        inventoryService.createInventory(product.getId(), request.getStock());
+
+        // clear cache list
+        redisService.delete(RedisKey.productList());
+
         auditService.log(username, "CREATE_PRODUCT", product.getName());
 
         return ProductMapper.toResponse(product);
@@ -87,16 +98,26 @@ public class ProductServiceImpl implements ProductService {
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        // validate price
+        if (request.getPrice() != null && request.getPrice() <= 0) {
+            throw new BadRequestException("Price must be > 0");
+        }
+
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
-        if (request.getStock() != null) // product.setStock(request.getStock()); stock update phải đi qua Inventory (KHÔNG update ở Product nữa)
         if (request.getImageUrl() != null) product.setImageUrl(request.getImageUrl());
         if (request.getActive() != null) product.setActive(request.getActive());
+
+        // update stock qua inventory
+        if (request.getStock() != null) {
+            inventoryService.increaseStock(id, request.getStock());
+        }
 
         // update category
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
+                    .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
             if (!category.getIsActive()) {
@@ -111,7 +132,9 @@ public class ProductServiceImpl implements ProductService {
 
         productRepository.save(product);
 
+        // clear cache
         redisService.delete(RedisKey.product(id));
+        redisService.delete(RedisKey.productList());
 
         auditService.log(username, "UPDATE_PRODUCT", product.getName());
 
@@ -135,6 +158,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
 
         redisService.delete(RedisKey.product(id));
+        redisService.delete(RedisKey.productList());
 
         auditService.log(username, "DELETE_PRODUCT", product.getName());
     }
@@ -163,20 +187,32 @@ public class ProductServiceImpl implements ProductService {
 
     // ================= GET ALL =================
     @Override
-    public Page<ProductResponse> getAll(int page, int size) {
+public Page<ProductResponse> getAll(int page, int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
+    size = Math.min(size, 50);
 
-        return productRepository.findAll(
-                (root, query, cb) -> cb.equal(root.get("deleted"), false),
-                pageable
-        ).map(ProductMapper::toResponse);
+    String key = RedisKey.productList(page, size);
+
+    Object cached = redisService.get(key);
+    if (cached instanceof Page<?> cachedPage) {
+        return (Page<ProductResponse>) cachedPage;
     }
 
+    Pageable pageable = PageRequest.of(page, size);
+
+    Page<ProductResponse> result = productRepository
+            .findAllByDeletedFalse(pageable)
+            .map(ProductMapper::toResponse);
+
+    redisService.set(key, result, 300); // cache 5 phút
+
+    return result;
+}
     // ================= SEARCH =================
     @Override
     public Page<ProductResponse> search(ProductSearchRequest request, int page, int size) {
 
+        size = Math.min(size, 50);
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
         return productRepository

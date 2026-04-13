@@ -1,10 +1,11 @@
 package e_commerce.platform.payment.service;
 
 import e_commerce.platform.payment.dto.response.CreatePaymentResponse;
+import java.util.Map;
 
 public interface PaymentService {
 
     CreatePaymentResponse createPayment(Long orderId);
 
-    void handleCallback(String transactionId, boolean success);
+    String handleVNPayCallback(Map<String, String> params);
 }

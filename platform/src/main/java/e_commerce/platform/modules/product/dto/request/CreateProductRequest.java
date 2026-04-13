@@ -11,6 +11,7 @@ public class CreateProductRequest {
     private String description;
 
     @NotNull
+    @Positive
     private Double price;
 
     private Integer stock;

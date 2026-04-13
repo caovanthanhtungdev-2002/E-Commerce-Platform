@@ -32,16 +32,19 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse create(CreateCategoryRequest request) {
 
-        if (categoryRepository.existsByName(request.getName())) {
+        if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
             throw new ConflictException("Category already exists");
         }
-
+        
+         String username = "SYSTEM"; // tạm, sau sẽ lấy từ JWT
         Category category = Category.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .isActive(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+        .name(request.getName())
+        .description(request.getDescription())
+        .isActive(true)
+        .deleted(false)
+        .createdAt(LocalDateTime.now())
+        .createdBy(username)
+        .build();
 
         categoryRepository.save(category);
 
@@ -55,12 +58,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse update(Long id, UpdateCategoryRequest request) {
 
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+       Category category = categoryRepository.findById(id)
+        .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
+        .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        if (request.getName() != null) {
-            category.setName(request.getName());
-        }
+       if (request.getName() != null &&
+    categoryRepository.existsByNameIgnoreCase(request.getName())) {
+    throw new ConflictException("Category name already exists");
+}
 
         if (request.getDescription() != null) {
             category.setDescription(request.getDescription());
@@ -70,6 +75,7 @@ public class CategoryServiceImpl implements CategoryService {
             category.setIsActive(request.getIsActive());
         }
 
+        category.setUpdatedBy("SYSTEM");
         categoryRepository.save(category);
 
         // clear cache
@@ -85,10 +91,11 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        if (!category.getIsActive()) {
-            throw new ResourceNotFoundException("Category already deleted");
-        }
+        if (Boolean.TRUE.equals(category.getDeleted())) {
+    throw new ResourceNotFoundException("Category already deleted");
+}
 
+        category.setDeleted(true);
         category.setIsActive(false);
         categoryRepository.save(category);
 
@@ -97,11 +104,30 @@ public class CategoryServiceImpl implements CategoryService {
 
     // ================= GET ALL =================
     @Override
-    public Page<CategoryResponse> getAll(int page, int size) {
+public Page<CategoryResponse> getAll(int page, int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
+    size = Math.min(size, 50); // max 50
+    
+    String key = RedisKey.categoryList();
 
-        return categoryRepository.findAll(pageable)
-                .map(CategoryMapper::toResponse);
+    // 1. CHECK CACHE
+    Object cached = redisService.get(key);
+    if (cached instanceof Page<?> cachedPage) {
+        return (Page<CategoryResponse>) cachedPage;
     }
+
+    // 2. QUERY DB
+    
+    Pageable pageable = PageRequest.of(page, size);
+
+    Page<CategoryResponse> result = categoryRepository
+            .findByDeletedFalseAndIsActiveTrue(pageable)
+            .map(CategoryMapper::toResponse);
+
+    // 3. SAVE CACHE (TTL 5 phút)
+    redisService.set(key, result, 300);
+
+    return result;
+}
+
 }

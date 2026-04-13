@@ -29,9 +29,11 @@ public class Product {
 
     private String imageUrl;
 
-    private boolean active;
+    @Builder.Default
+private boolean active = true;
 
-    private boolean deleted;
+@Builder.Default
+private boolean deleted = false;
 
     private LocalDateTime createdAt;
 

@@ -4,10 +4,13 @@ import e_commerce.platform.exception.BadRequestException;
 import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.modules.cart.dto.response.CartResponse;
 import e_commerce.platform.modules.cart.service.CartService;
-import e_commerce.platform.modules.inventory.service.InventoryService;
-import e_commerce.platform.modules.order.dto.response.*;
-import e_commerce.platform.modules.order.entity.*;
+import e_commerce.platform.modules.order.dto.response.OrderResponse;
+import e_commerce.platform.modules.order.entity.Order;
+import e_commerce.platform.modules.order.entity.OrderItem;
 import e_commerce.platform.modules.order.enums.OrderStatus;
+import e_commerce.platform.modules.order.event.OrderEvent;
+import e_commerce.platform.modules.order.mapper.OrderMapper;
+import e_commerce.platform.modules.order.producer.OrderProducer;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.order.service.OrderService;
 
@@ -25,7 +28,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final CartService cartService;
-    private final InventoryService inventoryService;
+    private final OrderProducer orderProducer;
 
     // ================= CREATE ORDER =================
     @Override
@@ -45,29 +48,35 @@ public class OrderServiceImpl implements OrderService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        List<OrderItem> items = cart.getItems().stream().map(i -> {
-
-            //confirm stock (QUAN TRỌNG)
-            inventoryService.confirmOrder(i.getProductId(), i.getQuantity());
-
-            return OrderItem.builder()
-                    .productId(i.getProductId())
-                    .productName(i.getProductName())
-                    .price(i.getPrice())
-                    .quantity(i.getQuantity())
-                    .order(order)
-                    .build();
-
-        }).toList();
+        List<OrderItem> items = cart.getItems().stream().map(i ->
+                OrderItem.builder()
+                        .productId(i.getProductId())
+                        .productName(i.getProductName())
+                        .price(i.getPrice())
+                        .quantity(i.getQuantity())
+                        .order(order)
+                        .build()
+        ).toList();
 
         order.setItems(items);
-
         orderRepository.save(order);
 
-        //clear cart sau khi order thành công
+        // gửi event sang PAYMENT (KHÔNG gọi inventory ở đây)
+        items.forEach(i -> {
+            orderProducer.sendOrderCreated(
+                    OrderEvent.builder()
+                            .orderId(order.getId())
+                            .productId(i.getProductId())
+                            .quantity(i.getQuantity())
+                            .status("CREATED")
+                            .build()
+            );
+        });
+
+        // clear cart
         cartService.clearCart(username);
 
-        return mapToResponse(order);
+        return OrderMapper.toResponse(order);
     }
 
     // ================= GET ORDER =================
@@ -77,24 +86,6 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        return mapToResponse(order);
-    }
-
-    // ================= MAPPER =================
-    private OrderResponse mapToResponse(Order order) {
-
-        return OrderResponse.builder()
-                .id(order.getId())
-                .totalPrice(order.getTotalPrice())
-                .status(order.getStatus().name())
-                .items(order.getItems().stream().map(i ->
-                        OrderItemResponse.builder()
-                                .productId(i.getProductId())
-                                .productName(i.getProductName())
-                                .price(i.getPrice())
-                                .quantity(i.getQuantity())
-                                .build()
-                ).toList())
-                .build();
+        return OrderMapper.toResponse(order);
     }
 }
