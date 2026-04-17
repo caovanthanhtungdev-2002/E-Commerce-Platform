@@ -15,6 +15,7 @@ import e_commerce.platform.modules.coupon.service.CouponService;
 import lombok.RequiredArgsConstructor;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class CouponServiceImpl implements CouponService {
 

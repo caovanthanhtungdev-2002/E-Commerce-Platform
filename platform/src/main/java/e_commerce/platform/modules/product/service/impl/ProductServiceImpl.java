@@ -109,10 +109,6 @@ public class ProductServiceImpl implements ProductService {
         if (request.getImageUrl() != null) product.setImageUrl(request.getImageUrl());
         if (request.getActive() != null) product.setActive(request.getActive());
 
-        // update stock qua inventory
-        if (request.getStock() != null) {
-            inventoryService.increaseStock(id, request.getStock());
-        }
 
         // update category
         if (request.getCategoryId() != null) {

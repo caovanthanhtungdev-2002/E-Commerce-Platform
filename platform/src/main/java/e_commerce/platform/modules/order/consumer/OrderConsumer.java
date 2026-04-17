@@ -32,4 +32,5 @@ public class OrderConsumer {
 
         orderRepository.save(order);
     }
+    
 }

@@ -11,7 +11,6 @@ public class ProductMapper {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-               //.stock(product.getStock())
                 .imageUrl(product.getImageUrl())
                 .active(product.isActive())
                 .categoryName(

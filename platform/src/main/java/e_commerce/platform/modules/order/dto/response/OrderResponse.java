@@ -13,4 +13,9 @@ public class OrderResponse {
     private Double totalPrice;
     private String status;
     private List<OrderItemResponse> items;
+        
+    // thêm coupon 
+    private Double discount;
+    private Double finalPrice;
+    private String couponCode;
 }

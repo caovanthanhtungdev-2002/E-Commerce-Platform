@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class CreateOrderRequest {
     // future: address, paymentMethod
+    private String couponCode;
 }

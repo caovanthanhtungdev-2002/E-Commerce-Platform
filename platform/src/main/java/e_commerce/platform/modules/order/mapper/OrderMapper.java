@@ -15,6 +15,9 @@ public class OrderMapper {
                 .totalPrice(order.getTotalPrice())
                 .status(order.getStatus().name())
                 .items(toItemResponses(order.getItems()))
+                .discount(order.getDiscount())
+                .finalPrice(order.getFinalPrice())
+                .couponCode(order.getCouponCode())
                 .build();
     }
 

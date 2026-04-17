@@ -24,9 +24,7 @@ public class Product {
 
     @Column(nullable = false)
     private Double price;
-
-    // private Integer stock;
-
+    
     private String imageUrl;
 
     @Builder.Default

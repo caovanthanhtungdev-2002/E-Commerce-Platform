@@ -10,7 +10,6 @@ public class ProductResponse {
     private String name;
     private String description;
     private Double price;
-   // private Integer stock; stock không trả từ product nữa
     private String imageUrl;
     private boolean active;
     private String categoryName;
