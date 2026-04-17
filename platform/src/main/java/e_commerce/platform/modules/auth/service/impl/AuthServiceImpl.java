@@ -1,6 +1,9 @@
 package e_commerce.platform.modules.auth.service.impl;
 
 import e_commerce.platform.modules.auth.service.TokenService;
+import e_commerce.platform.modules.user.entity.User;
+import e_commerce.platform.modules.user.repository.*;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +17,6 @@ import e_commerce.platform.modules.auth.dto.response.AuthResponse;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
 import e_commerce.platform.modules.auth.entity.*;
 import e_commerce.platform.modules.auth.mapper.AuthMapper;
-import e_commerce.platform.modules.auth.repository.*;
 import e_commerce.platform.modules.auth.service.AuthService;
 
 import lombok.RequiredArgsConstructor;

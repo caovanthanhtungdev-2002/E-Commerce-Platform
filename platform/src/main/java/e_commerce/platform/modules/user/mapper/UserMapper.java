@@ -1,7 +1,7 @@
 package e_commerce.platform.modules.user.mapper;
 
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
-import e_commerce.platform.modules.auth.entity.User;
+import e_commerce.platform.modules.user.entity.User;
 
 public class UserMapper {
 

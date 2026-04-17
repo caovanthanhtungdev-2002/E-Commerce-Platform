@@ -24,7 +24,7 @@ public class Product {
 
     @Column(nullable = false)
     private Double price;
-    
+
     private String imageUrl;
 
     @Builder.Default
@@ -45,4 +45,7 @@ private boolean deleted = false;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    private Double avgRating;
+    private Long reviewCount;
 }

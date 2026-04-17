@@ -6,11 +6,11 @@ import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.exception.UnauthorizedException;
 import e_commerce.platform.modules.audit.service.AuditService;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
-import e_commerce.platform.modules.auth.entity.User;
-import e_commerce.platform.modules.auth.repository.UserRepository;
 import e_commerce.platform.modules.user.dto.request.ChangePasswordRequest;
 import e_commerce.platform.modules.user.dto.request.UpdateProfileRequest;
+import e_commerce.platform.modules.user.entity.User;
 import e_commerce.platform.modules.user.mapper.UserMapper;
+import e_commerce.platform.modules.user.repository.UserRepository;
 import e_commerce.platform.modules.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;

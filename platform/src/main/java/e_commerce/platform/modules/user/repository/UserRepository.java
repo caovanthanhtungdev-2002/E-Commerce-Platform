@@ -1,7 +1,7 @@
-package e_commerce.platform.modules.auth.repository;
-import  e_commerce.platform.modules.auth.entity.User;
-
+package e_commerce.platform.modules.user.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import e_commerce.platform.modules.user.entity.User;
 
 import java.util.Optional;
 

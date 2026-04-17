@@ -3,7 +3,8 @@ package e_commerce.platform.modules.auth.security.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
-import e_commerce.platform.modules.auth.repository.UserRepository;
+
+import e_commerce.platform.modules.user.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor

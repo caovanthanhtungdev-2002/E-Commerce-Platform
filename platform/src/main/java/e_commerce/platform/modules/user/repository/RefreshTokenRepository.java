@@ -1,3 +1,4 @@
+package e_commerce.platform.modules.user.repository;
 /*package e_commerce.platform.modules.auth.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;

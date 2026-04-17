@@ -1,6 +1,7 @@
-package e_commerce.platform.modules.auth.entity;
+package e_commerce.platform.modules.user.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import e_commerce.platform.modules.auth.entity.Role;
 import jakarta.persistence.*;
 import lombok.*;
 

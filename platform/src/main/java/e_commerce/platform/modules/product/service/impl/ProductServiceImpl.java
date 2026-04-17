@@ -15,13 +15,13 @@ import e_commerce.platform.modules.product.mapper.ProductMapper;
 import e_commerce.platform.modules.product.repository.ProductRepository;
 import e_commerce.platform.modules.product.service.ProductService;
 import e_commerce.platform.modules.product.spec.ProductSpecification;
-
+import e_commerce.platform.modules.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 @Service
@@ -33,6 +33,7 @@ public class ProductServiceImpl implements ProductService {
     private final RedisService redisService;
     private final AuditService auditService;
     private final InventoryService inventoryService;
+    private final ReviewRepository reviewRepository;
 
     // ================= GET CURRENT USER =================
     private String getCurrentUser() {
@@ -215,4 +216,19 @@ public Page<ProductResponse> getAll(int page, int size) {
                 .findAll(ProductSpecification.filter(request), pageable)
                 .map(ProductMapper::toResponse);
     }
+
+    @Transactional
+public void updateRating(Long productId) {
+
+    Double avg = reviewRepository.getAverageRating(productId);
+    long total = reviewRepository.countByProductId(productId);
+
+    Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+    product.setAvgRating(avg != null ? avg : 0);
+    product.setReviewCount(total);
+
+    productRepository.save(product);
+}
 }

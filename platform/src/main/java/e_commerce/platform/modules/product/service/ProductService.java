@@ -18,6 +18,7 @@ public interface ProductService {
 
     Page<ProductResponse> getAll(int page, int size);
     
-
+    void updateRating(Long productId);
+    
     Page<ProductResponse> search(ProductSearchRequest request, int page, int size);
 }
