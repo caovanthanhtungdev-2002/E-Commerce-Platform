@@ -24,6 +24,9 @@ public class User {
     @JsonIgnore
     private String password;
 
+    @Column(unique = true, nullable = false)
+    private String email;
+
     private String fullName;
     
     @Column(unique = true, nullable = false)
@@ -33,4 +36,6 @@ public class User {
     private Role role;
     
     private String avatar;
+
+    
 }

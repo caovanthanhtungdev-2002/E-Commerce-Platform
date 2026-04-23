@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 
 import jakarta.validation.Valid;
 
+import e_commerce.platform.modules.auth.dto.request.ForgotPasswordRequest;
+import e_commerce.platform.modules.auth.dto.request.ResetPasswordRequest;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -70,4 +73,18 @@ public class AuthController {
                 new ApiResponse<>(true, "Logout success", null)
         );
     }
+
+    @PostMapping("/forgot-password")
+public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    authService.forgotPassword(request.getEmail());
+    return new ApiResponse<>(true, "OTP sent", null);
+}
+
+@PostMapping("/reset-password")
+public ApiResponse<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+    authService.resetPassword(request);
+    return new ApiResponse<>(true, "Password reset success", null);
+}
+
+
 }

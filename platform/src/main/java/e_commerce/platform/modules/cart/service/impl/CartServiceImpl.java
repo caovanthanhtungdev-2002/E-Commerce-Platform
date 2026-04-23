@@ -8,10 +8,10 @@ import e_commerce.platform.modules.cart.model.CartItem;
 import e_commerce.platform.modules.cart.service.CartService;
 import e_commerce.platform.modules.inventory.service.InventoryService;
 import e_commerce.platform.modules.order.enums.OrderStatus;
+import e_commerce.platform.modules.payment.entity.Payment;
+import e_commerce.platform.modules.payment.enums.PaymentStatus;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
-import e_commerce.platform.payment.entity.Payment;
-import e_commerce.platform.payment.enums.PaymentStatus;
 
 import java.util.stream.Collectors;
 

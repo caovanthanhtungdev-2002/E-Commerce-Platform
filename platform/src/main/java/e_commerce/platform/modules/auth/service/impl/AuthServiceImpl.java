@@ -7,18 +7,21 @@ import e_commerce.platform.modules.user.repository.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.exception.BadRequestException;
 import e_commerce.platform.exception.ConflictException;
 import e_commerce.platform.exception.UnauthorizedException;
+import e_commerce.platform.integration.email.EmailService;
 import e_commerce.platform.modules.audit.service.AuditService;
 import e_commerce.platform.modules.auth.dto.request.LoginRequest;
 import e_commerce.platform.modules.auth.dto.request.RegisterRequest;
+import e_commerce.platform.modules.auth.dto.request.ResetPasswordRequest;
 import e_commerce.platform.modules.auth.dto.response.AuthResponse;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
 import e_commerce.platform.modules.auth.entity.*;
 import e_commerce.platform.modules.auth.mapper.AuthMapper;
 import e_commerce.platform.modules.auth.service.AuthService;
-
+import e_commerce.platform.modules.auth.service.OtpStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,6 +34,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final AuditService auditService;
+    private final EmailService emailService;
+    private final OtpStore otpStore;
 
     // ================= REGISTER =================
     @Override
@@ -42,12 +47,19 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Username already exists");
         }
 
+         if (userRepository.existsByEmail(request.getEmail())) {
+    throw new ConflictException("Email already exists");
+}
+
         if (userRepository.existsByPhone(request.getPhone())) {
             throw new ConflictException("Phone already exists");
         }
 
+       
+
         User user = User.builder()
                 .username(request.getUsername())
+                .email(request.getEmail()) 
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .fullName(request.getFullName())
@@ -66,8 +78,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+        User user = userRepository.findByEmail(request.getEmail())
+        .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Invalid credentials");
@@ -108,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().name()
         );
 
-        //AUDIT (ĐÃ SỬA ĐÚNG)
+        //AUDIT 
         auditService.log(user.getUsername(), "REFRESH_TOKEN", "User refreshed token");
 
         return AuthResponse.builder()
@@ -129,4 +141,65 @@ public class AuthServiceImpl implements AuthService {
         //AUDIT
         auditService.log(username, "LOGOUT", "User logged out");
     }
+
+   // ================= FORGOT PASSWORD =================
+@Override
+public void forgotPassword(String email) {
+
+    //chuẩn hóa input (tránh lỗi space, hoa thường)
+    email = email.trim().toLowerCase();
+
+    // tìm user theo email
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    // tạo OTP 6 số
+    String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
+
+    // lưu OTP theo email
+    otpStore.save(email, otp);
+
+    // gửi email
+    emailService.send(
+            email,
+            "OTP Reset Password",
+            "Mã OTP của bạn là: " + otp + " (hết hạn 5 phút)"
+    );
+
+    log.info("OTP sent to: {}", email); 
+}
+
+// ================= RESET PASSWORD =================
+@Override
+public void resetPassword(ResetPasswordRequest request) {
+
+    //chuẩn hóa email
+    String email = request.getEmail().trim().toLowerCase();
+
+    // lấy OTP đã lưu
+    String storedOtp = otpStore.get(email);
+
+    // kiểm tra OTP
+    if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
+        throw new BadRequestException("Invalid OTP");
+    }
+
+    // tìm user theo email
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    // validate password
+    if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+        throw new BadRequestException("Password too weak");
+    }
+
+    // cập nhật password
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    userRepository.save(user);
+
+    // xóa OTP sau khi dùng
+    otpStore.remove(email);
+
+    log.info("Password reset success for: {}", email);
+}
 }
