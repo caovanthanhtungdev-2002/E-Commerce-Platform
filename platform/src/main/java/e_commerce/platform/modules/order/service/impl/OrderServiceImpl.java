@@ -17,7 +17,8 @@ import e_commerce.platform.modules.order.mapper.OrderMapper;
 import e_commerce.platform.modules.order.producer.OrderProducer;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.order.service.OrderService;
-
+import e_commerce.platform.modules.product.entity.Product;
+import e_commerce.platform.modules.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -34,77 +35,90 @@ public class OrderServiceImpl implements OrderService {
     private final CartService cartService;
     private final OrderProducer orderProducer;
     private final CouponService couponService;
-    // ================= CREATE ORDER =================
+    private final ProductRepository productRepository;
+
     @Override
-@Transactional
-public OrderResponse createOrder(String username, CreateOrderRequest request) {
+    @Transactional
+    public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
-    CartResponse cart = cartService.getCart(username);
+        //Lấy cart
+        CartResponse cart = cartService.getCart(username);
 
-    if (cart.getItems().isEmpty()) {
-        throw new BadRequestException("Cart is empty");
-    }
+        if (cart.getItems().isEmpty()) {
+            throw new BadRequestException("Cart is empty");
+        }
 
-    double totalPrice = cart.getTotalPrice();
-    double discount = 0;
-    String couponCode = null;
+        double totalPrice = cart.getTotalPrice();
+        double discount = 0;
+        String couponCode = null;
 
-    //APPLY COUPON
-    if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
+        // Apply coupon
+        if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
 
-        ApplyCouponRequest couponRequest = new ApplyCouponRequest();
-        couponRequest.setCode(request.getCouponCode());
-        couponRequest.setOrderAmount(totalPrice);
+            ApplyCouponRequest couponRequest = new ApplyCouponRequest();
+            couponRequest.setCode(request.getCouponCode());
+            couponRequest.setOrderAmount(totalPrice);
 
-        CouponResponse couponResponse = couponService.applyCoupon(couponRequest);
+            CouponResponse couponResponse = couponService.applyCoupon(couponRequest);
 
-        discount = couponResponse.getDiscount();
-        couponCode = couponResponse.getCode();
-    }
+            discount = couponResponse.getDiscount();
+            couponCode = couponResponse.getCode();
+        }
 
-    double finalPrice = Math.max(0, totalPrice - discount);
+        double finalPrice = Math.max(0, totalPrice - discount);
 
-    Order order = Order.builder()
-            .username(username)
-            .totalPrice(totalPrice)
-            .discount(discount)
-            .finalPrice(finalPrice)
-            .couponCode(couponCode)
-            .status(OrderStatus.PENDING)
-            .createdAt(LocalDateTime.now())
-            .build();
+        // Tạo order
+        Order order = Order.builder()
+                .username(username)
+                .totalPrice(totalPrice)
+                .discount(discount)
+                .finalPrice(finalPrice)
+                .couponCode(couponCode)
+                .status(OrderStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-    List<OrderItem> items = cart.getItems().stream().map(i ->
-            OrderItem.builder()
-                    .productId(i.getProductId())
-                    .productName(i.getProductName())
-                    .price(i.getPrice())
+        // Map order items (QUAN TRỌNG)
+        List<OrderItem> items = cart.getItems().stream().map(i -> {
+
+            Product product = productRepository.findById(i.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            double itemTotal = i.getPrice() * i.getQuantity();
+
+            return OrderItem.builder()
+                    .product(product)                       // FK
+                    .productName(i.getProductName())        // snapshot từ cart
+                    .price(i.getPrice())                   // snapshot từ cart
                     .quantity(i.getQuantity())
+                    .totalPrice(itemTotal)
                     .order(order)
-                    .build()
-    ).toList();
+                    .build();
+        }).toList();
 
-    order.setItems(items);
-    orderRepository.save(order);
+        order.setItems(items);
 
-    //gửi Kafka
-    items.forEach(i -> {
-        orderProducer.sendOrderCreated(
-                OrderEvent.builder()
-                        .orderId(order.getId())
-                        .productId(i.getProductId())
-                        .quantity(i.getQuantity())
-                        .status("CREATED")
-                        .build()
-        );
-    });
+        //Save DB
+        orderRepository.save(order);
 
-    cartService.clearCart(username);
+        //Gửi Kafka
+        items.forEach(i -> {
+            orderProducer.sendOrderCreated(
+                    OrderEvent.builder()
+                            .orderId(order.getId())
+                            .productId(i.getProduct().getId()) 
+                            .quantity(i.getQuantity())
+                            .status("CREATED")
+                            .build()
+            );
+        });
 
-    return OrderMapper.toResponse(order);
-}
+        // Clear cart
+        cartService.clearCart(username);
 
-    // ================= GET ORDER =================
+        return OrderMapper.toResponse(order);
+    }
+
     @Override
     public OrderResponse getOrder(Long id) {
 
