@@ -1,10 +1,12 @@
 package e_commerce.platform.modules.order.mapper;
 
-import e_commerce.platform.modules.order.dto.response.*;
-import e_commerce.platform.modules.order.entity.*;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import e_commerce.platform.modules.order.dto.response.OrderItemResponse;
+import e_commerce.platform.modules.order.dto.response.OrderResponse;
+import e_commerce.platform.modules.order.entity.Order;
+import e_commerce.platform.modules.order.entity.OrderItem;
 
 public class OrderMapper {
 
@@ -33,7 +35,7 @@ public class OrderMapper {
     private static OrderItemResponse toItemResponse(OrderItem item) {
 
         return OrderItemResponse.builder()
-                .productId(item.getProductId())
+                .productId(item.getProduct().getId())
                 .productName(item.getProductName())
                 .price(item.getPrice())
                 .quantity(item.getQuantity())

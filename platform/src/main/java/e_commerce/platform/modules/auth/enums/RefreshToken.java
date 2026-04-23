@@ -1,3 +1,4 @@
+package e_commerce.platform.modules.auth.enums;
 
 /* package e_commerce.platform.modules.auth.entity;
 import jakarta.persistence.*;

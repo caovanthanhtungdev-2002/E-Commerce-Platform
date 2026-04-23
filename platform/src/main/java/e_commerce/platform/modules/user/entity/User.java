@@ -1,7 +1,7 @@
 package e_commerce.platform.modules.user.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import e_commerce.platform.modules.auth.entity.Role;
+import e_commerce.platform.modules.auth.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,6 +36,8 @@ public class User {
     private Role role;
     
     private String avatar;
+
+    private String status;
 
     
 }

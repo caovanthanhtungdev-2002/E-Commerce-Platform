@@ -18,7 +18,7 @@ import e_commerce.platform.modules.auth.dto.request.RegisterRequest;
 import e_commerce.platform.modules.auth.dto.request.ResetPasswordRequest;
 import e_commerce.platform.modules.auth.dto.response.AuthResponse;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
-import e_commerce.platform.modules.auth.entity.*;
+import e_commerce.platform.modules.auth.enums.*;
 import e_commerce.platform.modules.auth.mapper.AuthMapper;
 import e_commerce.platform.modules.auth.service.AuthService;
 import e_commerce.platform.modules.auth.service.OtpStore;

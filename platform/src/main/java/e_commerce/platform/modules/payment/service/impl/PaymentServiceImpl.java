@@ -1,7 +1,14 @@
 package e_commerce.platform.modules.payment.service.impl;
 
-import e_commerce.platform.exception.ResourceNotFoundException;
+import java.time.LocalDateTime;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import e_commerce.platform.exception.BadRequestException;
+import e_commerce.platform.exception.ResourceNotFoundException;
+import e_commerce.platform.modules.inventory.service.InventoryService;
 import e_commerce.platform.modules.order.entity.Order;
 import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
@@ -12,14 +19,7 @@ import e_commerce.platform.modules.payment.provider.PaymentProvider;
 import e_commerce.platform.modules.payment.provider.impl.VNPayProvider;
 import e_commerce.platform.modules.payment.repository.PaymentRepository;
 import e_commerce.platform.modules.payment.service.PaymentService;
-import e_commerce.platform.modules.inventory.service.InventoryService;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -91,7 +91,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             // CONFIRM INVENTORY
             order.getItems().forEach(i ->
-                    inventoryService.confirmOrder(i.getProductId(), i.getQuantity())
+                    inventoryService.confirmOrder(i.getProduct().getId(), i.getQuantity())
             );
 
         } else {
@@ -101,7 +101,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             // RELEASE INVENTORY
             order.getItems().forEach(i ->
-                    inventoryService.releaseStock(i.getProductId(), i.getQuantity())
+                    inventoryService.releaseStock(i.getProduct().getId(), i.getQuantity())
             );
         }
 
