@@ -1,5 +1,20 @@
 package e_commerce.platform.admin.service;
 
-public class AdminDashboardService {
-    
+import java.util.List;
+
+public interface AdminDashboardService {
+
+    Double getTotalRevenue();
+
+    Long getTotalOrders();
+
+    Long getTotalUsers();
+
+    Long getTotalProducts();
+
+    List<Object[]> getRevenueByDay();
+
+    List<Object[]> getTopSellingProducts();
+
+    List<Object[]> getOrderStatusStats();
 }

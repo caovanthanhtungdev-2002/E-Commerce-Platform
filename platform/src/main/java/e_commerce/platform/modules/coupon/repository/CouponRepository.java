@@ -12,4 +12,6 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Coupon> findByCode(String code);
+
+    boolean existsByCode(String code);
 }
