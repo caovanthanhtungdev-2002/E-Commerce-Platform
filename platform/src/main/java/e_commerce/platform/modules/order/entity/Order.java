@@ -46,4 +46,20 @@ public class Order {
     private Double finalPrice;
 
     private String couponCode;
+
+    private String address;
+
+    private String phone;
+
+    private LocalDateTime updatedAt;
+
+@PrePersist
+public void prePersist() {
+    this.createdAt = LocalDateTime.now();
+}
+
+@PreUpdate
+public void preUpdate() {
+    this.updatedAt = LocalDateTime.now();
+}
 }

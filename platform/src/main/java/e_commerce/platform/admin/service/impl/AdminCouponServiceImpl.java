@@ -131,6 +131,7 @@ public void updateCoupon(Long id, UpdateCouponRequest request) {
         }
         coupon.setExpiryDate(request.getExpiryDate());
     }
+     couponRepository.save(coupon);
 }
 
     // ================= ENABLE =================

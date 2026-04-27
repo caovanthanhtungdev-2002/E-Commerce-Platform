@@ -1,11 +1,12 @@
 package e_commerce.platform.admin.service.impl;
 
 import e_commerce.platform.admin.service.AdminProductService;
-
+import e_commerce.platform.admin.audit.AdminAuditAction;
+import e_commerce.platform.admin.dto.request.AdminUpdateProductRequest;
+import e_commerce.platform.admin.audit.AdminAuditLogger;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
 import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
-import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
 import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 import e_commerce.platform.modules.product.mapper.ProductMapper;
@@ -16,6 +17,7 @@ import e_commerce.platform.modules.category.repository.CategoryRepository;
 
 import e_commerce.platform.modules.inventory.service.InventoryService;
 
+
 import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.exception.BadRequestException;
 
@@ -23,10 +25,9 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +40,12 @@ public class AdminProductServiceImpl implements AdminProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryService inventoryService;
+    private final AdminAuditLogger adminAuditLogger;
+
+    // ================= GET CURRENT ADMIN =================
+    private String getCurrentAdmin() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
 
     // ================= GET ALL =================
     @Override
@@ -64,7 +71,7 @@ public class AdminProductServiceImpl implements AdminProductService {
         return productRepository.findByNameContainingIgnoreCase(keyword.trim());
     }
 
-    // ================= SEARCH WITH FILTER (nâng cao) =================
+    // ================= SEARCH WITH FILTER =================
     @Override
     public Page<ProductResponse> searchWithFilter(ProductSearchRequest request, int page, int size) {
         size = Math.min(size, 50);
@@ -86,6 +93,9 @@ public class AdminProductServiceImpl implements AdminProductService {
     // ================= CREATE =================
     @Override
     public void createProduct(CreateProductRequest request) {
+
+        String admin = getCurrentAdmin();
+
         if (request.getName() == null || request.getName().isBlank()) {
             throw new BadRequestException("Product name is required");
         }
@@ -111,29 +121,40 @@ public class AdminProductServiceImpl implements AdminProductService {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .imageUrl(request.getImageUrl())
-                .active(false)        // admin tạo → chờ duyệt
+                .active(false)
                 .deleted(false)
                 .createdAt(LocalDateTime.now())
-                .createdBy("ADMIN")
+                .createdBy(admin)
                 .category(category)
                 .build();
 
         productRepository.save(product);
 
-        // tạo inventory cho product
+        // create inventory
         inventoryService.createInventory(product.getId(), request.getStock());
+
+        adminAuditLogger.log(
+    AdminAuditAction.CREATE_PRODUCT,
+    "Created product: " + product.getName()
+);
     }
 
     // ================= UPDATE =================
     @Override
-    public void updateProduct(Long id, UpdateProductRequest request) {
+    public void updateProduct(Long id, AdminUpdateProductRequest request) {
+
+        String admin = getCurrentAdmin();
+
         Product product = getProductById(id);
 
         if (request.getPrice() != null && request.getPrice() <= 0) {
             throw new BadRequestException("Price must be greater than 0");
         }
 
-        if (request.getName() != null && !request.getName().isBlank()) {
+        if (request.getName() != null) {
+            if (request.getName().isBlank()) {
+                throw new BadRequestException("Name cannot be blank");
+            }
             product.setName(request.getName());
         }
 
@@ -153,15 +174,6 @@ public class AdminProductServiceImpl implements AdminProductService {
             product.setActive(request.getActive());
         }
 
-        // update stock nếu có
-        if (request.getStock() != null) {
-            if (request.getStock() < 0) {
-                throw new BadRequestException("Invalid stock value");
-            }
-            inventoryService.increaseStock(product.getId(), request.getStock());
-        }
-
-        // update category nếu có
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
@@ -175,12 +187,22 @@ public class AdminProductServiceImpl implements AdminProductService {
         }
 
         product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy("ADMIN");
+        product.setUpdatedBy(admin);
+
+        productRepository.save(product);
+
+        adminAuditLogger.log(
+    AdminAuditAction.UPDATE_PRODUCT,
+    "Updated product: " + product.getName()
+);
     }
 
     // ================= APPROVE =================
     @Override
     public void approveProduct(Long id) {
+
+        String admin = getCurrentAdmin();
+
         Product product = getProductById(id);
 
         if (product.isActive()) {
@@ -189,12 +211,22 @@ public class AdminProductServiceImpl implements AdminProductService {
 
         product.setActive(true);
         product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy("ADMIN");
+        product.setUpdatedBy(admin);
+
+        productRepository.save(product);
+
+        adminAuditLogger.log(
+    AdminAuditAction.APPROVE_PRODUCT,
+    "Approved product: " + product.getName()
+);
     }
 
     // ================= DISABLE =================
     @Override
     public void disableProduct(Long id) {
+
+        String admin = getCurrentAdmin();
+
         Product product = getProductById(id);
 
         if (!product.isActive()) {
@@ -203,12 +235,22 @@ public class AdminProductServiceImpl implements AdminProductService {
 
         product.setActive(false);
         product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy("ADMIN");
+        product.setUpdatedBy(admin);
+
+        productRepository.save(product);
+
+        adminAuditLogger.log(
+    AdminAuditAction.DISABLE_PRODUCT,
+    "Disabled product: " + product.getName()
+);
     }
 
-    // ================= DELETE (soft delete) =================
+    // ================= DELETE =================
     @Override
     public void deleteProduct(Long id) {
+
+        String admin = getCurrentAdmin();
+
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
@@ -218,6 +260,13 @@ public class AdminProductServiceImpl implements AdminProductService {
 
         product.setDeleted(true);
         product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy("ADMIN");
+        product.setUpdatedBy(admin);
+
+        productRepository.save(product);
+
+        adminAuditLogger.log(
+    AdminAuditAction.DELETE_PRODUCT,
+    "Deleted product: " + product.getName()
+);
     }
 }

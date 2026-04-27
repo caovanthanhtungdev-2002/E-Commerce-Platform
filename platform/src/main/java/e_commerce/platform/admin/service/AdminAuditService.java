@@ -1,19 +1,17 @@
 package e_commerce.platform.admin.service;
 
-import e_commerce.platform.modules.audit.entity.AuditLog;
+import e_commerce.platform.admin.dto.response.AdminAuditLogResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AdminAuditService {
 
-    void log(String admin, String action, String detail);
+    List<AdminAuditLogResponse> getLogs(int page, int size);
 
-    List<AuditLog> getLogs(int page, int size);
+    List<AdminAuditLogResponse> getByUsername(String username);
 
-    List<AuditLog> getLogsByAdmin(String admin);
+    List<AdminAuditLogResponse> getByAction(String action);
 
-    List<AuditLog> getLogsByAction(String action);
-
-    List<AuditLog> filterLogs(LocalDateTime from, LocalDateTime to);
+    List<AdminAuditLogResponse> filter(LocalDateTime from, LocalDateTime to);
 }

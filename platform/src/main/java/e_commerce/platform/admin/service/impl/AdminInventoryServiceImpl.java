@@ -62,6 +62,7 @@ public class AdminInventoryServiceImpl implements AdminInventoryService {
 
         int current = inventory.getStock() != null ? inventory.getStock() : 0;
         inventory.setStock(current + amount);
+        inventoryRepository.save(inventory);
     }
 
     // ================= DECREASE STOCK =================
@@ -89,6 +90,7 @@ public class AdminInventoryServiceImpl implements AdminInventoryService {
         }
 
         inventory.setStock(current - amount);
+        inventoryRepository.save(inventory);
     }
 
     // ================= SET STOCK =================
@@ -109,5 +111,6 @@ public class AdminInventoryServiceImpl implements AdminInventoryService {
         }
 
         inventory.setStock(quantity);
+        inventoryRepository.save(inventory);
     }
 }

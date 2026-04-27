@@ -2,6 +2,7 @@ package e_commerce.platform.admin.service;
 
 import java.util.List;
 import e_commerce.platform.modules.user.entity.User;
+import e_commerce.platform.modules.auth.enums.Role;
 
 public interface AdminUserService {
 
@@ -17,7 +18,7 @@ public interface AdminUserService {
 
  void activateUser(Long userId);
 
- void assignRole(Long userId, String roleName);
+ void assignRole(Long userId, Role role);
 
  void removeRole(Long userId);
 

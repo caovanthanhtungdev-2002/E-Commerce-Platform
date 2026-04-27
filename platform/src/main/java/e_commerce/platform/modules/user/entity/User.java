@@ -5,6 +5,8 @@ import e_commerce.platform.modules.auth.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @Builder
@@ -40,5 +42,14 @@ public class User {
     private String status;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = true; 
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+public void prePersist() {
+    this.createdAt = LocalDateTime.now();
+}
 }

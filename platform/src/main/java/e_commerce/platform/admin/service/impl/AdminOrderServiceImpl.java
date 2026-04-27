@@ -65,6 +65,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         validateStatusTransition(order.getStatus(), newStatus);
 
         order.setStatus(newStatus);
+        orderRepository.save(order);
     }
 
     // ================= CANCEL =================
@@ -81,7 +82,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-
+orderRepository.save(order);
         // TODO: gửi email thông báo lý do cancel cho user nếu cần
         // notificationService.sendCancelEmail(order.getUsername(), reason);
     }
@@ -101,6 +102,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
         order.setStatus(OrderStatus.REFUNDED);
 
+        orderRepository.save(order);
+
         // TODO: tích hợp payment gateway để hoàn tiền thực tế
         // paymentService.refund(order.getId(), order.getFinalPrice());
     }
@@ -119,6 +122,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         }
 
         order.setStatus(OrderStatus.COMPLETED);
+
+        orderRepository.save(order);
     }
 
     // ================= DELETE =================

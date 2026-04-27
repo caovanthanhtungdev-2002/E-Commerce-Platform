@@ -1,7 +1,7 @@
 package e_commerce.platform.admin.service;
 
 import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
-import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminUpdateProductRequest;
 import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 import e_commerce.platform.modules.product.entity.Product;
@@ -23,7 +23,7 @@ public interface AdminProductService {
 
     void createProduct(CreateProductRequest request);
 
-    void updateProduct(Long id, UpdateProductRequest request);
+    void updateProduct(Long id, AdminUpdateProductRequest request);
 
     void approveProduct(Long id);
 

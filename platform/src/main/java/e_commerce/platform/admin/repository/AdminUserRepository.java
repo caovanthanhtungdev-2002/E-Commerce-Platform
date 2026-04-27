@@ -1,7 +1,7 @@
-
 package e_commerce.platform.admin.repository;
 
 import e_commerce.platform.modules.user.entity.User;
+import e_commerce.platform.modules.auth.enums.Role;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,8 +20,9 @@ public interface AdminUserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.role.name = :role")
-    List<User> findByRole(@Param("role") String role);
+  
+    @Query("SELECT u FROM User u WHERE u.role = :role")
+    List<User> findByRole(@Param("role") Role role); 
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.enabled = true")
     long countActiveUsers();

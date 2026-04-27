@@ -12,7 +12,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     Page<AuditLog> findAll(Pageable pageable);
 
-    List<AuditLog> findByAdminUsername(String admin);
 
     List<AuditLog> findByAction(String action);
 

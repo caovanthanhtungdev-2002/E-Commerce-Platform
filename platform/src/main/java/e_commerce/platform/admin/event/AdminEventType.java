@@ -1,5 +1,36 @@
 package e_commerce.platform.admin.event;
 
-public class AdminEventType {
-    
+public enum AdminEventType {
+
+    // PRODUCT
+    PRODUCT_CREATED,
+    PRODUCT_UPDATED,
+    PRODUCT_APPROVED,
+    PRODUCT_DELETED,
+
+    // ORDER
+    ORDER_CREATED,
+    ORDER_UPDATED,
+    ORDER_CANCELLED,
+    ORDER_REFUNDED,
+
+    // USER
+    USER_CREATED,
+    USER_UPDATED,
+    USER_BLOCKED,
+    USER_DELETED,
+
+    // PAYMENT
+    PAYMENT_SUCCESS,
+    PAYMENT_FAILED,
+    PAYMENT_REFUNDED,
+
+    // COUPON
+    COUPON_CREATED,
+    COUPON_UPDATED,
+    COUPON_DISABLED,
+
+    // SYSTEM
+    CONFIG_UPDATED,
+    ADMIN_ACTION
 }

@@ -1,96 +1,95 @@
 package e_commerce.platform.admin.service.impl;
 
+import e_commerce.platform.admin.dto.response.AdminAuditLogResponse;
 import e_commerce.platform.admin.service.AdminAuditService;
+
 import e_commerce.platform.modules.audit.entity.AuditLog;
 import e_commerce.platform.modules.audit.repository.AuditLogRepository;
+
 import e_commerce.platform.exception.BadRequestException;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class AdminAuditServiceImpl implements AdminAuditService {
 
     private final AuditLogRepository auditLogRepository;
 
-    // ================= LOG =================
+    // ================= GET ALL (phân trang) =================
     @Override
-    public void log(String admin, String action, String detail) {
+    public List<AdminAuditLogResponse> getLogs(int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page, size,
+                Sort.by("createdAt").descending()
+        );
+        return auditLogRepository.findAll(pageable)
+                .getContent()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
 
-        if (admin == null || admin.isBlank()) {
-            throw new BadRequestException("Admin is required");
+    // ================= GET BY USERNAME =================
+    @Override
+    public List<AdminAuditLogResponse> getByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new BadRequestException("Username is required");
         }
+        return auditLogRepository.findByUsername(username.trim())
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
 
-        if (action == null || action.isBlank()) {
+    // ================= GET BY ACTION =================
+    @Override
+    public List<AdminAuditLogResponse> getByAction(String action) {
+        if (action == null || action.trim().isEmpty()) {
             throw new BadRequestException("Action is required");
         }
-
-        AuditLog log = AuditLog.builder()
-                .username(admin)         
-                .action(action)
-                .description(detail)      
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        auditLogRepository.save(log);
+        return auditLogRepository.findByAction(action.trim().toUpperCase())
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
-    // ================= GET ALL =================
+    // ================= FILTER BY DATE =================
     @Override
-    public List<AuditLog> getLogs(int page, int size) {
-
-        if (page < 0 || size <= 0) {
-            throw new BadRequestException("Invalid pagination parameters");
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        return auditLogRepository.findAll(pageable).getContent();
-    }
-
-    // ================= BY ADMIN =================
-    @Override
-    public List<AuditLog> getLogsByAdmin(String admin) {
-
-        if (admin == null || admin.isBlank()) {
-            throw new BadRequestException("Admin is required");
-        }
-
-        // FIX: phải là username
-        return auditLogRepository.findByUsername(admin);
-    }
-
-    // ================= BY ACTION =================
-    @Override
-    public List<AuditLog> getLogsByAction(String action) {
-
-        if (action == null || action.isBlank()) {
-            throw new BadRequestException("Action is required");
-        }
-
-        return auditLogRepository.findByAction(action);
-    }
-
-    // ================= FILTER =================
-    @Override
-    public List<AuditLog> filterLogs(LocalDateTime from, LocalDateTime to) {
-
-        if (from != null && to != null && from.isAfter(to)) {
-            throw new BadRequestException("Invalid time range");
-        }
+    public List<AdminAuditLogResponse> filter(LocalDateTime from, LocalDateTime to) {
 
         LocalDateTime start = (from != null) ? from : LocalDateTime.MIN;
-        LocalDateTime end = (to != null) ? to : LocalDateTime.now();
+        LocalDateTime end   = (to   != null) ? to   : LocalDateTime.now();
 
-        return auditLogRepository.findByCreatedAtBetween(start, end);
+        if (start.isAfter(end)) {
+            throw new BadRequestException("'from' date must be before 'to' date");
+        }
+
+        return auditLogRepository.findByCreatedAtBetween(start, end)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ================= MAPPER =================
+    private AdminAuditLogResponse toResponse(AuditLog log) {
+        return AdminAuditLogResponse.builder()
+                .id(log.getId())
+                .username(log.getUsername())
+                .action(log.getAction())
+                .description(log.getDescription())
+                .createdAt(log.getCreatedAt())
+                .build();
     }
 }

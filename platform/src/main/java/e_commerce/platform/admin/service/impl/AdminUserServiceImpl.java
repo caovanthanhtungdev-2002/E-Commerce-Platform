@@ -87,19 +87,22 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     // ================= ASSIGN ROLE =================
-    @Override
-    public void assignRole(Long userId, String roleName) {
-        if (roleName == null || roleName.trim().isEmpty()) {
-            throw new BadRequestException("Role name is required");
-        }
-        User user = getUserById(userId);
-        try {
-            Role role = Role.valueOf(roleName.trim().toUpperCase());
-            user.setRole(role);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid role: " + roleName);
-        }
+   @Override
+public void assignRole(Long userId, Role role) {
+
+    if (role == null) {
+        throw new BadRequestException("Role is required");
     }
+
+    User user = getUserById(userId);
+
+    // SECURITY: chặn set ROOT
+    if (role == Role.ROOT) {
+        throw new BadRequestException("Cannot assign ROOT role");
+    }
+
+    user.setRole(role);
+}
 
     // ================= REMOVE ROLE =================
     @Override
