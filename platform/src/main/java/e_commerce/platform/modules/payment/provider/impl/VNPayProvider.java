@@ -38,12 +38,15 @@ public class VNPayProvider implements PaymentProvider {
 
     public boolean verify(Map<String, String> params) {
 
-        String receivedHash = params.get("vnp_SecureHash");
-        params.remove("vnp_SecureHash");
+    String receivedHash = params.get("vnp_SecureHash");
 
-        String query = VNPayUtil.buildQuery(params);
-        String calculatedHash = VNPayUtil.hmacSHA512(VNPayConfig.HASH_SECRET, query);
+    Map<String, String> cloned = new HashMap<>(params);
+    cloned.remove("vnp_SecureHash");
 
-        return calculatedHash.equals(receivedHash);
-    }
+    String query = VNPayUtil.buildQuery(cloned);
+    String calculatedHash = VNPayUtil.hmacSHA512(VNPayConfig.HASH_SECRET, query);
+
+    return calculatedHash.equals(receivedHash);
+}
+
 }

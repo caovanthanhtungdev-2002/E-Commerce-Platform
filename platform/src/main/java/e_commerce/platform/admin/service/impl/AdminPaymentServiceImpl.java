@@ -8,6 +8,7 @@ import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.payment.entity.Payment;
 import e_commerce.platform.modules.payment.enums.PaymentStatus;
+import e_commerce.platform.modules.payment.producer.PaymentProducer;
 import e_commerce.platform.modules.payment.repository.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final PaymentProducer paymentProducer;
 
     private static final int MAX_PAGE_SIZE = 100;
 

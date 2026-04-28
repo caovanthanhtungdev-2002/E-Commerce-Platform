@@ -1,15 +1,11 @@
 package e_commerce.platform.modules.auth.service.impl;
 
-import e_commerce.platform.modules.auth.service.TokenService;
-import e_commerce.platform.modules.user.entity.User;
-import e_commerce.platform.modules.user.repository.*;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.exception.BadRequestException;
 import e_commerce.platform.exception.ConflictException;
+import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.exception.UnauthorizedException;
 import e_commerce.platform.integration.email.EmailService;
 import e_commerce.platform.modules.audit.service.AuditService;
@@ -18,10 +14,13 @@ import e_commerce.platform.modules.auth.dto.request.RegisterRequest;
 import e_commerce.platform.modules.auth.dto.request.ResetPasswordRequest;
 import e_commerce.platform.modules.auth.dto.response.AuthResponse;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
-import e_commerce.platform.modules.auth.enums.*;
+import e_commerce.platform.modules.auth.enums.Role;
 import e_commerce.platform.modules.auth.mapper.AuthMapper;
 import e_commerce.platform.modules.auth.service.AuthService;
 import e_commerce.platform.modules.auth.service.OtpStore;
+import e_commerce.platform.modules.auth.service.TokenService;
+import e_commerce.platform.modules.user.entity.User;
+import e_commerce.platform.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,40 +38,49 @@ public class AuthServiceImpl implements AuthService {
 
     // ================= REGISTER =================
     @Override
-    public UserResponse register(RegisterRequest request) {
+public UserResponse register(RegisterRequest request) {
 
-        log.info("Register user: {}", request.getUsername());
+    log.info("Register user: {}", request.getUsername());
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ConflictException("Username already exists");
-        }
-
-         if (userRepository.existsByEmail(request.getEmail())) {
-    throw new ConflictException("Email already exists");
-}
-
-        if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ConflictException("Phone already exists");
-        }
-
-       
-
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail()) 
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
-                .fullName(request.getFullName())
-                .role(Role.USER)
-                .build();
-
-        userRepository.save(user);
-
-        //AUDIT
-        auditService.log(user.getUsername(), "REGISTER", "User registered");
-
-        return AuthMapper.toUserResponse(user);
+    //VALIDATE PASSWORD
+    if (request.getPassword() == null || request.getConfirmPassword() == null) {
+        throw new BadRequestException("Password không được để trống");
     }
+
+    if (!request.getPassword().equals(request.getConfirmPassword())) {
+        throw new BadRequestException("Password không khớp");
+    }
+
+    //CHECK EXIST
+    if (userRepository.existsByUsername(request.getUsername())) {
+        throw new ConflictException("Username already exists");
+    }
+
+    if (userRepository.existsByEmail(request.getEmail())) {
+        throw new ConflictException("Email already exists");
+    }
+
+    if (userRepository.existsByPhone(request.getPhone())) {
+        throw new ConflictException("Phone already exists");
+    }
+
+    //CREATE USER
+    User user = User.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .phone(request.getPhone())
+            .fullName(request.getFullName())
+            .role(Role.USER)
+            .build();
+
+    userRepository.save(user);
+
+    // AUDIT
+    auditService.log(user.getUsername(), "REGISTER", "User registered");
+
+    return AuthMapper.toUserResponse(user);
+}
 
     // ================= LOGIN =================
     @Override
@@ -179,6 +187,11 @@ public void resetPassword(ResetPasswordRequest request) {
     // lấy OTP đã lưu
     String storedOtp = otpStore.get(email);
 
+
+    log.info("EMAIL: '{}'", email);
+    log.info("INPUT OTP: '{}'", request.getOtp());
+    log.info("STORED OTP: '{}'", storedOtp);
+
     // kiểm tra OTP
     if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
         throw new BadRequestException("Invalid OTP");
@@ -187,6 +200,10 @@ public void resetPassword(ResetPasswordRequest request) {
     // tìm user theo email
     User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+        throw new BadRequestException("Password không khớp");
+    }
 
     // validate password
     if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {

@@ -1,0 +1,52 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0a0a0f;
+}
+
+.card {
+  width: 380px;
+  padding: 32px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title {
+  text-align: center;
+  color: #fff;
+}
+
+.input {
+  padding: 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.button {
+  padding: 12px;
+  background: #b48c50;
+  border: none;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+}
+
+.footer {
+  text-align: center;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.link {
+  color: #b48c50;
+  font-weight: bold;
+}

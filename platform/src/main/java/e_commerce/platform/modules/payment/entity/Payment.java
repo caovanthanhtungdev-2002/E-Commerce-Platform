@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import e_commerce.platform.modules.payment.enums.PaymentMethod;
 import e_commerce.platform.modules.payment.enums.PaymentStatus;
 
 
@@ -32,7 +33,9 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    private String provider; // VNPay, Stripe
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod provider;
 
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

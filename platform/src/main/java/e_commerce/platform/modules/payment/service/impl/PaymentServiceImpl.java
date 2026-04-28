@@ -15,6 +15,7 @@ import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.payment.dto.response.CreatePaymentResponse;
 import e_commerce.platform.modules.payment.entity.Payment;
+import e_commerce.platform.modules.payment.enums.PaymentMethod;
 import e_commerce.platform.modules.payment.enums.PaymentStatus;
 import e_commerce.platform.modules.payment.provider.impl.VNPayProvider;
 import e_commerce.platform.modules.payment.repository.PaymentRepository;
@@ -59,7 +60,7 @@ public class PaymentServiceImpl implements PaymentService {
                             .orderId(orderId)
                             .amount(order.getTotalPrice())
                             .status(PaymentStatus.PENDING)
-                            .provider("VNPAY")
+                            .provider(PaymentMethod.VNPAY)
                             .createdAt(LocalDateTime.now())
                             .build();
 
