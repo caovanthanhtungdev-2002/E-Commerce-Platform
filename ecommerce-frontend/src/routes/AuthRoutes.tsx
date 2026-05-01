@@ -6,6 +6,8 @@ import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import RegisterPage from '@/features/auth/pages/register/RegisterPage';
 import ProfilePage from '@/features/user/pages/ProfilePage';
 import ChangePasswordPage from '@/features/user/pages/ChangePasswordPage';
+ 
+
 
 export function AuthRoutes() {
   return (
