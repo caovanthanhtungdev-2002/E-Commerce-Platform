@@ -7,6 +7,7 @@ import e_commerce.platform.modules.user.dto.request.ChangePasswordRequest;
 import e_commerce.platform.modules.user.dto.request.UpdateProfileRequest;
 
 public interface UserService {
+    UserResponse getProfile(String username);
 
     UserResponse updateProfile(String username, UpdateProfileRequest request);
 

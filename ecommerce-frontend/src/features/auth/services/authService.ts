@@ -11,9 +11,17 @@ import type {
 } from '../types/auth.types';
 
 export const authService = {
- login: (data: LoginRequest) => {
-  console.log('LOGIN DATA:', data); 
-  return axiosInstance.post('/api/auth/login', data);
+login: async (data: LoginRequest) => {
+  const res = await axiosInstance.post('/api/auth/login', data);
+
+  const { accessToken, refreshToken, role } = res.data.data;
+
+  // LƯU TOKEN
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("refreshToken", refreshToken);
+  localStorage.setItem("role", role);
+
+  return res.data.data;
 },
 
   register: (data: RegisterRequest) =>

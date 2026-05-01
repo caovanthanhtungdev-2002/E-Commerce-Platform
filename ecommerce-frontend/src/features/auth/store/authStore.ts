@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
   try {
     const res = await authService.login(data);
 
-    const result = res.data.data;
+    const result = await authService.login(data);
 
     set({
       user: result.user,

@@ -25,60 +25,59 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-            .csrf(csrf -> csrf.disable())
+    http
+        .cors(cors -> {})
+        .csrf(csrf -> csrf.disable())
 
-            .exceptionHandling(ex -> ex
-                    .authenticationEntryPoint(authenticationEntryPoint)
-                    .accessDeniedHandler(accessDeniedHandler)
-            )
+        .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
+        )
 
-            .sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+        .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        )
 
-            .authorizeHttpRequests(auth -> auth
+        .authorizeHttpRequests(auth -> auth
 
-                    //Public API 
-                    .requestMatchers("/api/auth/**").permitAll()
+                // PREFLIGHT 
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                    //ADMIN
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                //Public API 
+                .requestMatchers("/api/auth/**").permitAll()
 
-                    //swagger
-                    .requestMatchers(
-        "/swagger-ui/**",
-        "/v3/api-docs/**",
-        "/v3/api-docs",
-        "/swagger-resources/**",
-        "/webjars/**"
-                                   ).permitAll()
+                //ADMIN
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                    //USER
-                    .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                //swagger
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
 
-                    //Public Product
-                    .requestMatchers("/api/products/**").permitAll()
-                   
+                //USER
+                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 
-                    // pravate Product
-                    .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                //Public Product
+                .requestMatchers("/api/products/**").permitAll()
 
+                // private Product
+                .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
 
-                    //tất cả còn lại phải login
-                    .anyRequest().authenticated()
-            );
+                .anyRequest().authenticated()
+        );
 
-        //Add JWT filter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+}
 
     //Password encoder
     @Bean

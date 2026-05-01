@@ -31,6 +31,16 @@ public class UserServiceImpl implements UserService {
     private final AuditService auditService;
 
     // ================= UPDATE PROFILE =================
+
+    @Override
+public UserResponse getProfile(String username) {
+
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    return UserMapper.toResponse(user);
+}
+
     @Override
     public UserResponse updateProfile(String username, UpdateProfileRequest request) {
 
@@ -53,6 +63,9 @@ public class UserServiceImpl implements UserService {
         if (request.getPhone() != null) {
             user.setPhone(request.getPhone());
         }
+          if (request.getAddress() != null) user.setAddress(request.getAddress());
+
+    if (request.getBio() != null) user.setBio(request.getBio());
 
         userRepository.save(user);
 
@@ -62,29 +75,30 @@ public class UserServiceImpl implements UserService {
     }
 
     // ================= CHANGE PASSWORD =================
-    @Override
-    public void changePassword(String username, ChangePasswordRequest request) {
+   @Override
+public void changePassword(String username, ChangePasswordRequest request) {
 
-        if (request.getOldPassword() == null || request.getNewPassword() == null) {
-            throw new BadRequestException("Password is required");
-        }
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new UnauthorizedException("Wrong password");
-        }
-
-        if (request.getNewPassword().length() < 6) {
-            throw new BadRequestException("Password too weak");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        auditService.log(username, "CHANGE_PASSWORD", "User changed password");
+    if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+        throw new UnauthorizedException("Wrong current password");
     }
+
+    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+        throw new BadRequestException("Passwords do not match");
+    }
+
+    if (request.getNewPassword().length() < 6) {
+        throw new BadRequestException("Password too weak");
+    }
+
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    userRepository.save(user);
+
+    auditService.log(username, "CHANGE_PASSWORD", "User changed password");
+}
+
 
     // ================= GET USERS (PAGINATION) =================
     @Override

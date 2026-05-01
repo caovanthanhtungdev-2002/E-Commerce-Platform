@@ -51,5 +51,11 @@ public class User {
     @PrePersist
 public void prePersist() {
     this.createdAt = LocalDateTime.now();
+
 }
+private String address;
+
+@Column(length = 500)
+private String bio;
+
 }
