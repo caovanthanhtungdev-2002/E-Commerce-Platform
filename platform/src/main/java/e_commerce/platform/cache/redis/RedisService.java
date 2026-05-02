@@ -1,5 +1,6 @@
 package e_commerce.platform.cache.redis;
 
+
 public interface RedisService {
 
     void set(String key, Object value, long ttl);
@@ -7,4 +8,6 @@ public interface RedisService {
     Object get(String key);
 
     void delete(String key);
+    
+     void deletePattern(String pattern);
 }

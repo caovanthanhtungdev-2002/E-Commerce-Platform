@@ -1,33 +1,21 @@
+// e_commerce/platform/admin/service/AdminProductService.java
 package e_commerce.platform.admin.service;
 
-import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminCreateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminProductFilterRequest;
 import e_commerce.platform.admin.dto.request.AdminUpdateProductRequest;
-import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
-import e_commerce.platform.modules.product.dto.response.ProductResponse;
-import e_commerce.platform.modules.product.entity.Product;
-
+import e_commerce.platform.admin.dto.response.AdminProductResponse;
 import org.springframework.data.domain.Page;
-import java.util.List;
 
 public interface AdminProductService {
 
-    List<Product> getProducts(int page, int size);
+    AdminProductResponse create(AdminCreateProductRequest request);
 
-    Product getProductById(Long id);
+    Page<AdminProductResponse> getAll(AdminProductFilterRequest filter, int page, int size);
 
-    List<Product> searchProducts(String keyword);
+    AdminProductResponse getById(Long id);
 
-    Page<ProductResponse> searchWithFilter(ProductSearchRequest request, int page, int size);
+    AdminProductResponse update(Long id, AdminUpdateProductRequest request);
 
-    List<Product> getProductsByCategory(Long categoryId);
-
-    void createProduct(CreateProductRequest request);
-
-    void updateProduct(Long id, AdminUpdateProductRequest request);
-
-    void approveProduct(Long id);
-
-    void disableProduct(Long id);
-
-    void deleteProduct(Long id);
+    void delete(Long id);
 }

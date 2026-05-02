@@ -27,6 +27,7 @@ public class CategoryController {
                 true,
                 "Success",
                 categoryService.getAll(page, size)
+                
         );
     }
 }

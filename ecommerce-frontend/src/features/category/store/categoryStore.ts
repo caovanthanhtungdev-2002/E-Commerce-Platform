@@ -1,41 +1,37 @@
 import { create } from "zustand";
-import { Category, Page } from "../types/category";
-import * as service from "../services/categoryService";
+import { categoryService } from "../services/categoryService";
+import type { Category } from "../types/categoryTypes";
 
 interface CategoryState {
-  pageData: Page<Category> | null;
+  categories: Category[];
+  page: number;
+  totalPages: number;
   loading: boolean;
-  fetch: (page: number, size: number) => Promise<void>;
-  add: (c: Partial<Category>) => Promise<void>;
-  update: (id: number, c: Partial<Category>) => Promise<void>;
-  remove: (id: number) => Promise<void>;
+
+  fetchCategories: (page?: number) => Promise<void>;
 }
 
 export const useCategoryStore = create<CategoryState>((set) => ({
-  pageData: null,
+  categories: [],
+  page: 0,
+  totalPages: 0,
   loading: false,
 
-  fetch: async (page, size) => {
+  fetchCategories: async (page = 0) => {
     set({ loading: true });
-    const data = await service.getCategories(page, size);
-    set({ pageData: data, loading: false });
-  },
 
-  add: async (c) => {
-    await service.createCategory(c);
-    const state = useCategoryStore.getState();
-    await state.fetch(0, 10);
-  },
+    try {
+      const data = await categoryService.getAll(page, 10);
 
-  update: async (id, c) => {
-    await service.updateCategory(id, c);
-    const state = useCategoryStore.getState();
-    await state.fetch(0, 10);
-  },
-
-  remove: async (id) => {
-    await service.deleteCategory(id);
-    const state = useCategoryStore.getState();
-    await state.fetch(0, 10);
+      set({
+        categories: data.content,
+        page,
+        totalPages: data.totalPages,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("Category fetch error:", err);
+      set({ loading: false });
+    }
   },
 }));

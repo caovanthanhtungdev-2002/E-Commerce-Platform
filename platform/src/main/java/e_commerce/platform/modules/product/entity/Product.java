@@ -1,8 +1,9 @@
+
 package e_commerce.platform.modules.product.entity;
 
+import e_commerce.platform.modules.category.entity.Category;
 import jakarta.persistence.*;
 import lombok.*;
-import e_commerce.platform.modules.category.entity.Category;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,6 +21,7 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
@@ -27,25 +29,26 @@ public class Product {
 
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     @Builder.Default
-private boolean active = true;
+    private ProductStatus status = ProductStatus.ACTIVE;
 
-@Builder.Default
-private boolean deleted = false;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
-    private String createdBy;
-    
-    private String updatedBy;
-    
-    //category
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
     private Double avgRating;
-    private Long reviewCount;
+
+    @Builder.Default
+    private Long reviewCount = 0L;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    private String createdBy;
+
+    private String updatedBy;
 }

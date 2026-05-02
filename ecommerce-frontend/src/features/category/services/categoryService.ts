@@ -1,23 +1,12 @@
-import axios from "axios";
-import { Category, ApiResponse, Page } from "../types/category"
+import axiosInstance from "@/config/axios";
+import type { Category, ApiResponse, PageResponse } from "../types/categoryTypes";
 
-const API_URL = "/api/categories";
+export const categoryService = {
+  async getAll(page = 0, size = 10) {
+    const res = await axiosInstance.get<ApiResponse<PageResponse<Category>>>(
+      `/api/categories?page=${page}&size=${size}`
+    );
 
-export const getCategories = async (page: number, size: number) => {
-  const res = await axios.get<ApiResponse<Page<Category>>>(`${API_URL}?page=${page}&size=${size}`);
-  return res.data.data;
-};
-
-export const createCategory = async (data: Partial<Category>) => {
-  const res = await axios.post<ApiResponse<Category>>(API_URL, data);
-  return res.data.data;
-};
-
-export const updateCategory = async (id: number, data: Partial<Category>) => {
-  const res = await axios.put<ApiResponse<Category>>(`${API_URL}/${id}`, data);
-  return res.data.data;
-};
-
-export const deleteCategory = async (id: number) => {
-  await axios.delete(`${API_URL}/${id}`);
+    return res.data.data;
+  },
 };

@@ -3,6 +3,7 @@ package e_commerce.platform.cache.redis;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import java.util.Set;
 
 import java.time.Duration;
 
@@ -26,4 +27,12 @@ public class RedisServiceImpl implements RedisService {
     public void delete(String key) {
         redisTemplate.delete(key);
     }
+
+    @Override
+public void deletePattern(String pattern) {
+    Set<String> keys = redisTemplate.keys(pattern);
+    if (keys != null && !keys.isEmpty()) {
+        redisTemplate.delete(keys);
+    }
+}
 }

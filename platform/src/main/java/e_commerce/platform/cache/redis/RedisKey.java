@@ -25,8 +25,12 @@ public class RedisKey {
     }
 
     // CATEGORY
+    public static String categoryList(int page, int size) {
+        return "ecommerce:category:list:" + page + ":" + size;
+    }
+
     public static String categoryList() {
-        return "ecommerce:category:list";
+        return "ecommerce:category:list:*"; // dùng cho deletePattern
     }
 
     // CART

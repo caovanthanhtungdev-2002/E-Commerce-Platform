@@ -1,6 +1,8 @@
+
 package e_commerce.platform.admin.dto.request;
 
-import jakarta.validation.constraints.DecimalMin;
+import e_commerce.platform.modules.product.entity.ProductStatus;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
@@ -10,12 +12,12 @@ public class AdminUpdateProductRequest {
 
     private String description;
 
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+    @Positive
     private Double price;
 
     private String imageUrl;
 
-    private Boolean active; // admin mới được set
+    private ProductStatus status; 
 
-    private Long categoryId; // admin mới được đổi category
-}    
+    private Long categoryId;
+}

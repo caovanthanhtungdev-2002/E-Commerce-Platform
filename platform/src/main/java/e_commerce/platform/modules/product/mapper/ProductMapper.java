@@ -1,3 +1,4 @@
+
 package e_commerce.platform.modules.product.mapper;
 
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
@@ -12,12 +13,10 @@ public class ProductMapper {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .imageUrl(product.getImageUrl())
-                .active(product.isActive())
-                .categoryName(
-                        product.getCategory() != null 
-                        ? product.getCategory().getName() 
-                        : null
-                )
+                .categoryName(product.getCategory() != null
+                        ? product.getCategory().getName() : null)
+                .avgRating(product.getAvgRating())
+                .reviewCount(product.getReviewCount())
                 .build();
     }
 }

@@ -1,24 +1,21 @@
+// e_commerce/platform/modules/product/service/ProductService.java
 package e_commerce.platform.modules.product.service;
 
-import org.springframework.data.domain.Page;
-import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
 import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
-import e_commerce.platform.modules.product.dto.request.UpdateProductRequest;
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
+import org.springframework.data.domain.Page;
 
 public interface ProductService {
 
-    ProductResponse create(CreateProductRequest request);
-
-    ProductResponse update(Long id, UpdateProductRequest request);
-
-    void delete(Long id);
-
+    /** Public: xem chi tiết 1 product (chỉ ACTIVE) */
     ProductResponse getById(Long id);
 
+    /** Public: danh sách ACTIVE products */
     Page<ProductResponse> getAll(int page, int size);
-    
-    void updateRating(Long productId);
-    
+
+    /** Public: tìm kiếm ACTIVE products */
     Page<ProductResponse> search(ProductSearchRequest request, int page, int size);
+
+    /** Internal: cập nhật rating sau review (gọi từ Kafka) */
+    void updateRating(Long productId);
 }

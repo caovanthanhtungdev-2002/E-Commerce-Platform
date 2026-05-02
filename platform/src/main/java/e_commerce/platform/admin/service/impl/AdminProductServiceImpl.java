@@ -1,272 +1,165 @@
+// e_commerce/platform/admin/service/impl/AdminProductServiceImpl.java
 package e_commerce.platform.admin.service.impl;
 
-import e_commerce.platform.admin.service.AdminProductService;
-import e_commerce.platform.admin.audit.AdminAuditAction;
+import e_commerce.platform.admin.dto.request.AdminCreateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminProductFilterRequest;
 import e_commerce.platform.admin.dto.request.AdminUpdateProductRequest;
-import e_commerce.platform.admin.audit.AdminAuditLogger;
-import e_commerce.platform.modules.product.entity.Product;
-import e_commerce.platform.modules.product.repository.ProductRepository;
-import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
-import e_commerce.platform.modules.product.dto.request.ProductSearchRequest;
-import e_commerce.platform.modules.product.dto.response.ProductResponse;
-import e_commerce.platform.modules.product.mapper.ProductMapper;
-import e_commerce.platform.modules.product.spec.ProductSpecification;
-
+import e_commerce.platform.admin.dto.response.AdminProductResponse;
+import e_commerce.platform.admin.mapper.AdminProductMapper;
+import e_commerce.platform.admin.service.AdminProductService;
+import e_commerce.platform.admin.spec.AdminProductSpecification;
+import e_commerce.platform.cache.redis.RedisKey;
+import e_commerce.platform.cache.redis.RedisService;
+import e_commerce.platform.exception.BadRequestException;
+import e_commerce.platform.exception.ResourceNotFoundException;
+import e_commerce.platform.modules.audit.service.AuditService;
 import e_commerce.platform.modules.category.entity.Category;
 import e_commerce.platform.modules.category.repository.CategoryRepository;
-
 import e_commerce.platform.modules.inventory.service.InventoryService;
-
-
-import e_commerce.platform.exception.ResourceNotFoundException;
-import e_commerce.platform.exception.BadRequestException;
-
+import e_commerce.platform.modules.product.entity.Product;
+import e_commerce.platform.modules.product.entity.ProductStatus;
+import e_commerce.platform.modules.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.*;
-
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class AdminProductServiceImpl implements AdminProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryService inventoryService;
-    private final AdminAuditLogger adminAuditLogger;
+    private final RedisService redisService;
+    private final AuditService auditService;
 
-    // ================= GET CURRENT ADMIN =================
     private String getCurrentAdmin() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
-    // ================= GET ALL =================
+    // ── CREATE ───────────────────────────────────────────────────
     @Override
-    public List<Product> getProducts(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return productRepository.findAll(pageable).getContent();
-    }
-
-    // ================= GET BY ID =================
-    @Override
-    public Product getProductById(Long id) {
-        return productRepository.findById(id)
-                .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-    }
-
-    // ================= SEARCH =================
-    @Override
-    public List<Product> searchProducts(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            throw new BadRequestException("Keyword is required");
-        }
-        return productRepository.findByNameContainingIgnoreCase(keyword.trim());
-    }
-
-    // ================= SEARCH WITH FILTER =================
-    @Override
-    public Page<ProductResponse> searchWithFilter(ProductSearchRequest request, int page, int size) {
-        size = Math.min(size, 50);
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return productRepository
-                .findAll(ProductSpecification.filter(request), pageable)
-                .map(ProductMapper::toResponse);
-    }
-
-    // ================= FILTER BY CATEGORY =================
-    @Override
-    public List<Product> getProductsByCategory(Long categoryId) {
-        if (!categoryRepository.existsById(categoryId)) {
-            throw new ResourceNotFoundException("Category not found with id: " + categoryId);
-        }
-        return productRepository.findByCategory_Id(categoryId);
-    }
-
-    // ================= CREATE =================
-    @Override
-    public void createProduct(CreateProductRequest request) {
-
+    @Transactional
+    public AdminProductResponse create(AdminCreateProductRequest request) {
         String admin = getCurrentAdmin();
 
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new BadRequestException("Product name is required");
-        }
-
-        if (request.getPrice() == null || request.getPrice() <= 0) {
-            throw new BadRequestException("Price must be greater than 0");
-        }
-
-        if (request.getStock() == null || request.getStock() < 0) {
-            throw new BadRequestException("Invalid stock value");
-        }
-
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-
-        if (!category.getIsActive()) {
-            throw new BadRequestException("Category is inactive");
-        }
+        Category category = findActiveCategory(request.getCategoryId());
 
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .imageUrl(request.getImageUrl())
-                .active(false)
-                .deleted(false)
+                .status(ProductStatus.ACTIVE)
+                .category(category)
                 .createdAt(LocalDateTime.now())
                 .createdBy(admin)
-                .category(category)
                 .build();
 
         productRepository.save(product);
-
-        // create inventory
         inventoryService.createInventory(product.getId(), request.getStock());
 
-        adminAuditLogger.log(
-    AdminAuditAction.CREATE_PRODUCT,
-    "Created product: " + product.getName()
-);
+        redisService.delete(RedisKey.productList());
+        auditService.log(admin, "ADMIN_CREATE_PRODUCT", product.getName());
+
+        return AdminProductMapper.toResponse(product);
     }
 
-    // ================= UPDATE =================
+    // ── GET ALL ──────────────────────────────────────────────────
     @Override
-    public void updateProduct(Long id, AdminUpdateProductRequest request) {
+    public Page<AdminProductResponse> getAll(AdminProductFilterRequest filter, int page, int size) {
+        size = Math.min(size, 100);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
+        return productRepository
+                .findAll(AdminProductSpecification.filter(filter), pageable)
+                .map(AdminProductMapper::toResponse);
+    }
+
+    // ── GET BY ID ────────────────────────────────────────────────
+    @Override
+    public AdminProductResponse getById(Long id) {
+        return AdminProductMapper.toResponse(findProduct(id));
+    }
+
+    // ── UPDATE ───────────────────────────────────────────────────
+    @Override
+    @Transactional
+    public AdminProductResponse update(Long id, AdminUpdateProductRequest request) {
         String admin = getCurrentAdmin();
+        Product product = findProduct(id);
 
-        Product product = getProductById(id);
-
-        if (request.getPrice() != null && request.getPrice() <= 0) {
-            throw new BadRequestException("Price must be greater than 0");
+        if (product.getStatus() == ProductStatus.DELETED) {
+            throw new BadRequestException("Cannot update a deleted product");
         }
 
-        if (request.getName() != null) {
-            if (request.getName().isBlank()) {
-                throw new BadRequestException("Name cannot be blank");
+        if (request.getName() != null)        product.setName(request.getName());
+        if (request.getDescription() != null) product.setDescription(request.getDescription());
+        if (request.getImageUrl() != null)    product.setImageUrl(request.getImageUrl());
+        if (request.getStatus() != null) {
+            if (request.getStatus() == ProductStatus.DELETED) {
+                throw new BadRequestException("Use DELETE endpoint to remove a product");
             }
-            product.setName(request.getName());
+            product.setStatus(request.getStatus());
         }
-
-        if (request.getDescription() != null) {
-            product.setDescription(request.getDescription());
-        }
-
         if (request.getPrice() != null) {
+            if (request.getPrice() <= 0) throw new BadRequestException("Price must be > 0");
             product.setPrice(request.getPrice());
         }
-
-        if (request.getImageUrl() != null) {
-            product.setImageUrl(request.getImageUrl());
-        }
-
-        if (request.getActive() != null) {
-            product.setActive(request.getActive());
-        }
-
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-
-            if (!category.getIsActive()) {
-                throw new BadRequestException("Category is inactive");
-            }
-
-            product.setCategory(category);
+            product.setCategory(findActiveCategory(request.getCategoryId()));
         }
 
         product.setUpdatedAt(LocalDateTime.now());
         product.setUpdatedBy(admin);
-
         productRepository.save(product);
 
-        adminAuditLogger.log(
-    AdminAuditAction.UPDATE_PRODUCT,
-    "Updated product: " + product.getName()
-);
+        redisService.delete(RedisKey.product(id));
+        redisService.delete(RedisKey.productList());
+        auditService.log(admin, "ADMIN_UPDATE_PRODUCT", product.getName());
+
+        return AdminProductMapper.toResponse(product);
     }
 
-    // ================= APPROVE =================
+    // ── DELETE (soft) ────────────────────────────────────────────
     @Override
-    public void approveProduct(Long id) {
-
+    @Transactional
+    public void delete(Long id) {
         String admin = getCurrentAdmin();
+        Product product = findProduct(id);
 
-        Product product = getProductById(id);
-
-        if (product.isActive()) {
-            throw new BadRequestException("Product is already approved");
+        if (product.getStatus() == ProductStatus.DELETED) {
+            throw new BadRequestException("Product already deleted");
         }
 
-        product.setActive(true);
+        product.setStatus(ProductStatus.DELETED);
         product.setUpdatedAt(LocalDateTime.now());
         product.setUpdatedBy(admin);
-
         productRepository.save(product);
 
-        adminAuditLogger.log(
-    AdminAuditAction.APPROVE_PRODUCT,
-    "Approved product: " + product.getName()
-);
+        redisService.delete(RedisKey.product(id));
+        redisService.delete(RedisKey.productList());
+        auditService.log(admin, "ADMIN_DELETE_PRODUCT", product.getName());
     }
 
-    // ================= DISABLE =================
-    @Override
-    public void disableProduct(Long id) {
-
-        String admin = getCurrentAdmin();
-
-        Product product = getProductById(id);
-
-        if (!product.isActive()) {
-            throw new BadRequestException("Product is already disabled");
-        }
-
-        product.setActive(false);
-        product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy(admin);
-
-        productRepository.save(product);
-
-        adminAuditLogger.log(
-    AdminAuditAction.DISABLE_PRODUCT,
-    "Disabled product: " + product.getName()
-);
+    // ── HELPERS ──────────────────────────────────────────────────
+    private Product findProduct(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
-    // ================= DELETE =================
-    @Override
-    public void deleteProduct(Long id) {
+    private Category findActiveCategory(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        String admin = getCurrentAdmin();
-
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-
-        if (product.isDeleted()) {
-            throw new BadRequestException("Product is already deleted");
+        if (!category.getIsActive()) {
+            throw new BadRequestException("Category is inactive");
         }
-
-        product.setDeleted(true);
-        product.setUpdatedAt(LocalDateTime.now());
-        product.setUpdatedBy(admin);
-
-        productRepository.save(product);
-
-        adminAuditLogger.log(
-    AdminAuditAction.DELETE_PRODUCT,
-    "Deleted product: " + product.getName()
-);
+        return category;
     }
 }

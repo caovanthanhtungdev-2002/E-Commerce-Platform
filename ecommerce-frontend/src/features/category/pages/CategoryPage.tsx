@@ -1,52 +1,58 @@
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useCategoryStore } from "../store/categoryStore";
-import { CategoryModal } from "../components/CategoryModal";
-import "./CategoryPage.css";
+import CategoryCard from "../components/CategoryCard";
+import styles from "./CategoryPage.module.css";
 
-export const CategoryPage: React.FC = () => {
-  const { pageData, fetch, remove, add, update } = useCategoryStore();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+export default function CategoryPage() {
+  const { categories, fetchCategories, loading, page, totalPages } =
+    useCategoryStore();
 
   useEffect(() => {
-    fetch(0, 10);
+    fetchCategories(0);
   }, []);
 
-  const handleSubmit = async (data: any) => {
-    if (editing) await update(editing.id, data);
-    else await add(data);
-    setOpen(false);
-    setEditing(null);
-  };
-
   return (
-    <div className="page">
-      <div className="header">
-        <h1>Category Management</h1>
-        <button onClick={() => setOpen(true)}>+ Add</button>
-      </div>
+    <div className={styles.page}>
+      <div className={styles.blob1}></div>
+      <div className={styles.blob2}></div>
 
-      <div className="table">
-        {pageData?.content.map((c) => (
-          <div key={c.id} className="row">
-            <div>
-              <strong>{c.name}</strong>
-              <p>{c.description}</p>
-            </div>
-            <div className="actions">
-              <button onClick={() => { setEditing(c); setOpen(true); }}>Edit</button>
-              <button className="danger" onClick={() => remove(c.id)}>Delete</button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className={styles.container}>
+        <h1 className={styles.title}>Categories</h1>
 
-      <CategoryModal
-        open={open}
-        onClose={() => { setOpen(false); setEditing(null); }}
-        onSubmit={handleSubmit}
-        initial={editing}
-      />
+        {loading && <p className={styles.message}>Loading...</p>}
+
+        {!loading && categories.length === 0 && (
+          <p className={styles.message}>No categories found</p>
+        )}
+
+        <div className={styles.grid}>
+          {categories.map((cat) => (
+            <CategoryCard key={cat.id} category={cat} />
+          ))}
+        </div>
+
+        <div className={styles.pagination}>
+          <button
+            disabled={page === 0}
+            onClick={() => fetchCategories(page - 1)}
+            className={styles.button}
+          >
+            Prev
+          </button>
+
+          <span className={styles.pageInfo}>
+            {page + 1} / {totalPages}
+          </span>
+
+          <button
+            disabled={page + 1 >= totalPages}
+            onClick={() => fetchCategories(page + 1)}
+            className={styles.button}
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
-};
+}

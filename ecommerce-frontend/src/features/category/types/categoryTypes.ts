@@ -2,13 +2,13 @@ export interface Category {
   id: number;
   name: string;
   description?: string;
+  isActive: boolean;
 }
 
-export interface Page<T> {
+export interface PageResponse<T> {
   content: T[];
-  totalElements: number;
   totalPages: number;
-  number: number;
+  totalElements: number;
 }
 
 export interface ApiResponse<T> {

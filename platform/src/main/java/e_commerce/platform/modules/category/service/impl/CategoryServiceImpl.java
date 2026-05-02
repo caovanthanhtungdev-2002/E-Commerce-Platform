@@ -12,14 +12,13 @@ import e_commerce.platform.modules.category.mapper.CategoryMapper;
 import e_commerce.platform.modules.category.repository.CategoryRepository;
 import e_commerce.platform.modules.category.service.CategoryService;
 
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,21 +34,19 @@ public class CategoryServiceImpl implements CategoryService {
         if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
             throw new ConflictException("Category already exists");
         }
-        
-         String username = "SYSTEM"; // tạm, sau sẽ lấy từ JWT
+
         Category category = Category.builder()
-        .name(request.getName())
-        .description(request.getDescription())
-        .isActive(true)
-        .deleted(false)
-        .createdAt(LocalDateTime.now())
-        .createdBy(username)
-        .build();
+                .name(request.getName())
+                .description(request.getDescription())
+                .isActive(true)
+                .deleted(false)
+                .createdAt(LocalDateTime.now())
+                .createdBy("SYSTEM")
+                .build();
 
         categoryRepository.save(category);
 
-        // clear cache
-        redisService.delete(RedisKey.categoryList());
+        redisService.deletePattern("category:*"); 
 
         return CategoryMapper.toResponse(category);
     }
@@ -58,33 +55,29 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse update(Long id, UpdateCategoryRequest request) {
 
-       Category category = categoryRepository.findById(id)
-        .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
-        .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = categoryRepository.findById(id)
+                .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-       if (request.getName() != null &&
-    categoryRepository.existsByNameIgnoreCase(request.getName())) {
-    throw new ConflictException("Category name already exists");
-}
-
-        if (request.getDescription() != null) {
-            category.setDescription(request.getDescription());
+        if (request.getName() != null &&
+                categoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ConflictException("Category name already exists");
         }
 
-        if (request.getIsActive() != null) {
-            category.setIsActive(request.getIsActive());
-        }
+        if (request.getName() != null) category.setName(request.getName());
+        if (request.getDescription() != null) category.setDescription(request.getDescription());
+        if (request.getIsActive() != null) category.setIsActive(request.getIsActive());
 
         category.setUpdatedBy("SYSTEM");
+
         categoryRepository.save(category);
 
-        // clear cache
-        redisService.delete(RedisKey.categoryList());
+        redisService.deletePattern("category:*");
 
         return CategoryMapper.toResponse(category);
     }
 
-    // ================= DELETE (soft delete) =================
+    // ================= DELETE =================
     @Override
     public void delete(Long id) {
 
@@ -92,42 +85,40 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         if (Boolean.TRUE.equals(category.getDeleted())) {
-    throw new ResourceNotFoundException("Category already deleted");
-}
+            throw new ResourceNotFoundException("Category already deleted");
+        }
 
         category.setDeleted(true);
         category.setIsActive(false);
+
         categoryRepository.save(category);
 
-        redisService.delete(RedisKey.categoryList());
+        redisService.deletePattern("category:*");
     }
 
     // ================= GET ALL =================
     @Override
-public Page<CategoryResponse> getAll(int page, int size) {
+    public Page<CategoryResponse> getAll(int page, int size) {
 
-    size = Math.min(size, 50); // max 50
-    
-    String key = RedisKey.categoryList();
+        size = Math.min(size, 50);
 
-    // 1. CHECK CACHE
-    Object cached = redisService.get(key);
-    if (cached instanceof Page<?> cachedPage) {
-        return (Page<CategoryResponse>) cachedPage;
+        String key = "category:list:" + page + ":" + size;
+
+        Object cached = redisService.get(key);
+        if (cached instanceof List<?> list) {
+            List<CategoryResponse> data = (List<CategoryResponse>) list;
+            return new PageImpl<>(data, PageRequest.of(page, size), data.size());
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<CategoryResponse> result = categoryRepository
+                .findByDeletedFalseAndIsActiveTrue(pageable)
+                .map(CategoryMapper::toResponse);
+
+       
+        redisService.set(key, result.getContent(), 300);
+
+        return result;
     }
-
-    // 2. QUERY DB
-    
-    Pageable pageable = PageRequest.of(page, size);
-
-    Page<CategoryResponse> result = categoryRepository
-            .findByDeletedFalseAndIsActiveTrue(pageable)
-            .map(CategoryMapper::toResponse);
-
-    // 3. SAVE CACHE (TTL 5 phút)
-    redisService.set(key, result, 300);
-
-    return result;
-}
-
 }

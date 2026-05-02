@@ -2,31 +2,24 @@ package e_commerce.platform.modules.cart.service.impl;
 
 import e_commerce.platform.cache.redis.RedisKey;
 import e_commerce.platform.cache.redis.RedisService;
-import e_commerce.platform.exception.ResourceNotFoundException;
-import e_commerce.platform.modules.cart.dto.response.*;
+import e_commerce.platform.modules.cart.dto.response.CartItemResponse;
+import e_commerce.platform.modules.cart.dto.response.CartResponse;
 import e_commerce.platform.modules.cart.model.CartItem;
 import e_commerce.platform.modules.cart.service.CartService;
-import e_commerce.platform.modules.inventory.service.InventoryService;
-import e_commerce.platform.modules.order.enums.OrderStatus;
-import e_commerce.platform.modules.payment.entity.Payment;
-import e_commerce.platform.modules.payment.enums.PaymentStatus;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
 
-import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
 
     private final RedisService redisService;
-    private final InventoryService inventoryService;
     private final ProductRepository productRepository;
 
     private static final long CART_TTL = 60 * 60 * 24; // 1 ngày
@@ -36,9 +29,6 @@ public class CartServiceImpl implements CartService {
     public void addToCart(String username, Long productId, Integer quantity) {
 
         String key = RedisKey.cart(username);
-
-        //reserve stock
-        inventoryService.reserveStock(productId, quantity);
 
         List<CartItem> cart = getCartInternal(username);
 
@@ -63,13 +53,7 @@ public class CartServiceImpl implements CartService {
 
         List<CartItem> cart = getCartInternal(username);
 
-        cart.removeIf(item -> {
-            if (item.getProductId().equals(productId)) {
-                inventoryService.releaseStock(productId, item.getQuantity());
-                return true;
-            }
-            return false;
-        });
+        cart.removeIf(item -> item.getProductId().equals(productId));
 
         redisService.set(key, cart, CART_TTL);
     }
@@ -110,6 +94,7 @@ public class CartServiceImpl implements CartService {
                             .productName(product.getName())
                             .price(product.getPrice())
                             .quantity(item.getQuantity())
+                            .imageUrl(product.getImageUrl()) 
                             .build()
             );
         }
@@ -127,13 +112,6 @@ public class CartServiceImpl implements CartService {
     // ================= CLEAR =================
     @Override
     public void clearCart(String username) {
-
-        List<CartItem> cart = getCartInternal(username);
-
-        for (CartItem item : cart) {
-            inventoryService.releaseStock(item.getProductId(), item.getQuantity());
-        }
-
         redisService.delete(RedisKey.cart(username));
     }
 
@@ -148,7 +126,4 @@ public class CartServiceImpl implements CartService {
 
         return new ArrayList<>();
     }
-
-   
-
 }

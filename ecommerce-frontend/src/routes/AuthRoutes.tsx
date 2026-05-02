@@ -6,8 +6,9 @@ import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import RegisterPage from '@/features/auth/pages/register/RegisterPage';
 import ProfilePage from '@/features/user/pages/ProfilePage';
 import ChangePasswordPage from '@/features/user/pages/ChangePasswordPage';
- 
-
+import CategoryPage from "@/features/category/pages/CategoryPage";
+import ProductPage from "@/features/product/pages/ProductPage";
+import CartPage from "@/features/cart/pages/CartPage";
 
 export function AuthRoutes() {
   return (
@@ -26,6 +27,9 @@ export function AuthRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
+      <Route path="/categories" element={<CategoryPage />} />
+       <Route path="/products" element={<ProductPage />} />
+       <Route path="/cart" element={<CartPage />} />
     </>
   );
 }

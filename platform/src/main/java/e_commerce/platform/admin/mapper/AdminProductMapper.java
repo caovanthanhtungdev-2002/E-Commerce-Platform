@@ -1,3 +1,4 @@
+
 package e_commerce.platform.admin.mapper;
 
 import e_commerce.platform.admin.dto.response.AdminProductResponse;
@@ -12,9 +13,9 @@ public class AdminProductMapper {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .imageUrl(product.getImageUrl())
-                .active(product.isActive())
-                .deleted(product.isDeleted())
-                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
+                .status(product.getStatus())
+                .categoryName(product.getCategory() != null
+                        ? product.getCategory().getName() : null)
                 .avgRating(product.getAvgRating())
                 .reviewCount(product.getReviewCount())
                 .createdAt(product.getCreatedAt())

@@ -1,14 +1,16 @@
+// e_commerce/platform/admin/controller/AdminProductController.java
 package e_commerce.platform.admin.controller;
 
-import e_commerce.platform.admin.service.AdminProductService;
-import e_commerce.platform.modules.product.entity.Product;
-import lombok.RequiredArgsConstructor;
-import e_commerce.platform.modules.product.dto.request.CreateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminCreateProductRequest;
+import e_commerce.platform.admin.dto.request.AdminProductFilterRequest;
 import e_commerce.platform.admin.dto.request.AdminUpdateProductRequest;
-
+import e_commerce.platform.admin.dto.response.AdminProductResponse;
+import e_commerce.platform.admin.service.AdminProductService;
+import e_commerce.platform.common.response.ApiResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/products")
@@ -17,29 +19,35 @@ public class AdminProductController {
 
     private final AdminProductService productService;
 
-    @GetMapping
-    public List<Product> getAll(int page, int size) {
-        return productService.getProducts(page, size);
+    @PostMapping
+    public ApiResponse<AdminProductResponse> create(
+            @Valid @RequestBody AdminCreateProductRequest request) {
+        return ApiResponse.success("Created", productService.create(request));
     }
 
-    @PostMapping
-    public void create(@RequestBody CreateProductRequest request) {
-        productService.createProduct(request);
+    @GetMapping
+    public ApiResponse<Page<AdminProductResponse>> getAll(
+            @ModelAttribute AdminProductFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success("Success", productService.getAll(filter, page, size));
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<AdminProductResponse> getById(@PathVariable Long id) {
+        return ApiResponse.success("Success", productService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public void update(@PathVariable Long id,
-                       @RequestBody AdminUpdateProductRequest request) {
-        productService.updateProduct(id, request);
-    }
-
-    @PatchMapping("/{id}/approve")
-    public void approve(@PathVariable Long id) {
-        productService.approveProduct(id);
+    public ApiResponse<AdminProductResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUpdateProductRequest request) {
+        return ApiResponse.success("Updated", productService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        productService.deleteProduct(id);
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        productService.delete(id);
+        return ApiResponse.success("Deleted", null);
     }
 }
