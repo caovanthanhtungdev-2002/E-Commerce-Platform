@@ -1,10 +1,20 @@
 package e_commerce.platform.modules.payment.vnpay.config;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
 public class VNPayConfig {
 
-    public static final String TMN_CODE ="QJJU08HH";
-    public static final String HASH_SECRET ="DUPG6N6P7HLXADWH0KKRGW5PDD4MC8B0";
+    @Value("${vnpay.tmn-code}")
+    public String tmnCode;
 
-    public static final String PAY_URL ="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static final String RETURN_URL ="http://localhost:5173/payment-result";
+    @Value("${vnpay.hash-secret}")
+    public String hashSecret;
+
+    @Value("${vnpay.pay-url}")
+    public String payUrl;
+
+    @Value("${vnpay.return-url}")
+    public String returnUrl;
 }

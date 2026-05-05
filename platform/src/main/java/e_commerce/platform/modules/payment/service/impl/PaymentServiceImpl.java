@@ -35,42 +35,59 @@ public class PaymentServiceImpl implements PaymentService {
 
     // ================= CREATE =================
     @Override
-    public CreatePaymentResponse createPayment(Long orderId) {
+public CreatePaymentResponse createPayment(Long orderId) {
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+    Order order = orderRepository.findById(orderId)
+    
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new BadRequestException("Order is not in PENDING state. Current: " + order.getStatus());
-        }
-
-        // Idempotency: nếu đã có payment PENDING thì tái sử dụng, tránh tạo duplicate
-        return paymentRepository.findByOrderId(orderId)
-                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
-                .map(existing -> {
-                    log.info("[PAYMENT] Reusing existing PENDING payment id={} for orderId={}", existing.getId(), orderId);
-                  
-                    String url = vnPayProvider.createPaymentUrl(existing.getId(), orderId, existing.getAmount());
-                    return CreatePaymentResponse.builder().paymentUrl(url).build();
-                })
-                .orElseGet(() -> {
-                    Payment payment = Payment.builder()
-                            .orderId(orderId)
-                            .amount(order.getTotalPrice())
-                            .status(PaymentStatus.PENDING)
-                            .provider(PaymentMethod.VNPAY)
-                            .createdAt(LocalDateTime.now())
-                            .build();
-
-                    paymentRepository.save(payment);
-
-                    
-                    String url = vnPayProvider.createPaymentUrl(payment.getId(), orderId, payment.getAmount());
-                    log.info("[PAYMENT] Created payment id={} for orderId={}", payment.getId(), orderId);
-
-                    return CreatePaymentResponse.builder().paymentUrl(url).build();
-                });
+    if (order.getStatus() != OrderStatus.PENDING) {
+        throw new BadRequestException("Order is not in PENDING state. Current: " + order.getStatus());
     }
+
+    // Lấy payment mới nhất
+    Payment latestPayment = paymentRepository
+            .findTopByOrderIdOrderByCreatedAtDesc(orderId);
+
+    // reuse nếu đang PENDING
+    if (latestPayment != null && latestPayment.getStatus() == PaymentStatus.PENDING) {
+        log.info("[PAYMENT] Reusing existing PENDING payment id={} for orderId={}",
+                latestPayment.getId(), orderId);
+
+        String url = vnPayProvider.createPaymentUrl(
+                latestPayment.getId(),
+                orderId,
+                latestPayment.getAmount()
+        );
+
+        return CreatePaymentResponse.builder()
+                .paymentUrl(url)
+                .build();
+    }
+
+    //tạo mới nếu không có hoặc đã FAILED
+    Payment payment = Payment.builder()
+            .orderId(orderId)
+            .amount(order.getTotalPrice())
+            .status(PaymentStatus.PENDING)
+            .provider(PaymentMethod.VNPAY)
+            .createdAt(LocalDateTime.now())
+            .build();
+
+    paymentRepository.save(payment);
+
+    String url = vnPayProvider.createPaymentUrl(
+            payment.getId(),
+            orderId,
+            payment.getAmount()
+    );
+
+    log.info("[PAYMENT] Created payment id={} for orderId={}", payment.getId(), orderId);
+
+    return CreatePaymentResponse.builder()
+            .paymentUrl(url)
+            .build();
+}
 
     // ================= CALLBACK VNPay =================
     /**

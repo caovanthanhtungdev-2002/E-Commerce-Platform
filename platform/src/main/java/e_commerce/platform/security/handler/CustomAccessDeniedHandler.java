@@ -1,5 +1,4 @@
 package e_commerce.platform.security.handler;
-// có token nhưng không đủ quyền 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import e_commerce.platform.common.response.ApiResponse;
 import jakarta.servlet.http.*;
