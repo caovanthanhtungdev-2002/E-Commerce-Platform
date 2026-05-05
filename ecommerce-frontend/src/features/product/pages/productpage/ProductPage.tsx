@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useProductStore } from "../store/productStore";
-import ProductCard from "../components/ProductCard";
+import { useProductStore } from "../../store/productStore";
+import ProductCard from "../../components/productcard/ProductCard";
 import styles from "./ProductPage.module.css";
 
 export default function ProductPage() {

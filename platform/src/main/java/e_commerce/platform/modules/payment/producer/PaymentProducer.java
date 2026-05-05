@@ -9,15 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
-/**
- * PaymentProducer: publish payment result event lên Kafka topic "payment-topic".
- *
- * Flow:
- *   VNPay callback → PaymentServiceImpl → PaymentProducer.sendPaymentResult()
- *                                             → "payment-topic"
- *                                             → OrderConsumer (cập nhật order)
- *                                             → NotificationConsumer (gửi email)
- */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor

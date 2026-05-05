@@ -1,6 +1,7 @@
 import styles from "./CartItemCard.module.css";
 import { useCartStore } from "../store/cartStore";
 import type { CartItem } from "../types/cartTypes";
+import { formatCurrencyVND } from "@/utils/formatCurrency";
 
 const BASE_URL = "http://localhost:8080";
 
@@ -8,12 +9,11 @@ export default function CartItemCard({ item }: { item: CartItem }) {
   const { removeFromCart, toggleSelect, updateQuantity } =
     useCartStore();
 
- 
   const imageSrc = item.imageUrl
     ? item.imageUrl.startsWith("http")
       ? item.imageUrl
       : BASE_URL + item.imageUrl
-    : "https://picsum.photos/80"; 
+    : "https://picsum.photos/80";
 
   return (
     <div className={styles.card}>
@@ -33,8 +33,13 @@ export default function CartItemCard({ item }: { item: CartItem }) {
 
       <div className={styles.info}>
         <h4>{item.productName}</h4>
-        <p className={styles.price}>${item.price}</p>
 
+        {/* PRICE */}
+        <p className={styles.price}>
+          {formatCurrencyVND(Number(item.price))}
+        </p>
+
+        {/* QUANTITY */}
         <div className={styles.qty}>
           <button
             onClick={() =>
@@ -57,9 +62,12 @@ export default function CartItemCard({ item }: { item: CartItem }) {
         </div>
       </div>
 
+      {/* RIGHT SIDE */}
       <div className={styles.right}>
         <p className={styles.subtotal}>
-          ${(item.price * item.quantity).toFixed(2)}
+          {formatCurrencyVND(
+            Number(item.price) * item.quantity
+          )}
         </p>
 
         <button

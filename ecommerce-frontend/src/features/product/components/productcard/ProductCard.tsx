@@ -1,6 +1,6 @@
 import styles from "./ProductCard.module.css";
 import { useCartStore } from "@/features/cart/store/cartStore";
-import type { Product } from "../types/productTypes";
+import type { Product } from "../../types/productTypes";
 
 const BASE_URL = "http://localhost:8080";
 
@@ -34,7 +34,7 @@ export default function ProductCard({ product }: { product: Product }) {
       </p>
 
       <p className={styles.rating}>
-        ⭐ {product.avgRating || 0} ({product.reviewCount || 0})
+        {product.avgRating || 0} ({product.reviewCount || 0})
       </p>
 
       <button

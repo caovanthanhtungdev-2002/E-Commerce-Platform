@@ -31,8 +31,6 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final InventoryService inventoryService;
-
-    // Chỉ inject VNPayProvider — bỏ PaymentProvider interface vì đang dùng trực tiếp VNPay
     private final VNPayProvider vnPayProvider;
 
     // ================= CREATE =================
@@ -46,13 +44,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BadRequestException("Order is not in PENDING state. Current: " + order.getStatus());
         }
 
-        // Idempotency: nếu đã có payment PENDING cho order này thì trả lại URL cũ
-        // (tránh tạo duplicate payment khi user bấm lại)
+        // Idempotency: nếu đã có payment PENDING thì tái sử dụng, tránh tạo duplicate
         return paymentRepository.findByOrderId(orderId)
                 .filter(p -> p.getStatus() == PaymentStatus.PENDING)
                 .map(existing -> {
                     log.info("[PAYMENT] Reusing existing PENDING payment id={} for orderId={}", existing.getId(), orderId);
-                    String url = vnPayProvider.createPaymentUrl(existing.getId(), existing.getAmount());
+                  
+                    String url = vnPayProvider.createPaymentUrl(existing.getId(), orderId, existing.getAmount());
                     return CreatePaymentResponse.builder().paymentUrl(url).build();
                 })
                 .orElseGet(() -> {
@@ -66,7 +64,8 @@ public class PaymentServiceImpl implements PaymentService {
 
                     paymentRepository.save(payment);
 
-                    String url = vnPayProvider.createPaymentUrl(payment.getId(), payment.getAmount());
+                    
+                    String url = vnPayProvider.createPaymentUrl(payment.getId(), orderId, payment.getAmount());
                     log.info("[PAYMENT] Created payment id={} for orderId={}", payment.getId(), orderId);
 
                     return CreatePaymentResponse.builder().paymentUrl(url).build();
@@ -74,6 +73,12 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     // ================= CALLBACK VNPay =================
+    /**
+     * Xử lý callback từ VNPAY sau khi user thanh toán.
+     *
+     * Return value: orderId (String) để frontend navigate đúng trang,
+     * hoặc "INVALID_SIGNATURE" / "INVALID_PARAMS" khi có lỗi.
+     */
     @Override
     public String handleVNPayCallback(Map<String, String> params) {
 
@@ -83,9 +88,10 @@ public class PaymentServiceImpl implements PaymentService {
             return "INVALID_SIGNATURE";
         }
 
-        String txnRef = params.get("vnp_TxnRef");
+        String txnRef       = params.get("vnp_TxnRef");       
         String responseCode = params.get("vnp_ResponseCode");
-        String transactionId = params.get("vnp_TransactionNo"); // ID thật của VNPay
+        String transactionId = params.get("vnp_TransactionNo"); 
+        String orderInfo    = params.get("vnp_OrderInfo");      
 
         if (txnRef == null || responseCode == null) {
             log.warn("[PAYMENT] VNPay callback missing required params");
@@ -103,8 +109,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 2. Idempotency — tránh xử lý lại callback bị gửi 2 lần
         if (payment.getStatus() != PaymentStatus.PENDING) {
-            log.info("[PAYMENT] Callback ignored — payment id={} already processed with status={}", payment.getId(), payment.getStatus());
-            return "ALREADY_PROCESSED";
+            log.info("[PAYMENT] Callback ignored — payment id={} already processed with status={}",
+                    payment.getId(), payment.getStatus());
+            // Vẫn trả orderId để frontend navigate được
+            return String.valueOf(payment.getOrderId());
         }
 
         Order order = orderRepository.findById(payment.getOrderId())
@@ -113,7 +121,7 @@ public class PaymentServiceImpl implements PaymentService {
         if ("00".equals(responseCode)) {
             // ===== THANH TOÁN THÀNH CÔNG =====
             payment.setStatus(PaymentStatus.SUCCESS);
-            payment.setTransactionId(transactionId); // lưu ID của VNPay
+            payment.setTransactionId(transactionId);
             order.setStatus(OrderStatus.PAID);
 
             // Confirm inventory (trừ stock thật sự)
@@ -121,25 +129,25 @@ public class PaymentServiceImpl implements PaymentService {
                     inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
             );
 
-            log.info("[PAYMENT] SUCCESS: paymentId={}, orderId={}, transactionId={}", payment.getId(), order.getId(), transactionId);
+            log.info("[PAYMENT] SUCCESS: paymentId={}, orderId={}, transactionId={}",
+                    payment.getId(), order.getId(), transactionId);
 
         } else {
             // ===== THANH TOÁN THẤT BẠI =====
             payment.setStatus(PaymentStatus.FAILED);
             payment.setTransactionId(transactionId);
-            order.setStatus(OrderStatus.CANCELLED);
 
-            // Release inventory (hoàn lại stock đã reserve)
-            order.getItems().forEach(item ->
-                    inventoryService.releaseStock(item.getProduct().getId(), item.getQuantity())
-            );
+            // KHÔNG huỷ order — giữ PENDING để user có thể retry thanh toán
+            // KHÔNG releaseStock ngay — chờ scheduler hoặc user cancel thủ công
 
-            log.info("[PAYMENT] FAILED: paymentId={}, orderId={}, responseCode={}", payment.getId(), order.getId(), responseCode);
+            log.info("[PAYMENT] FAILED: paymentId={}, orderId={}, responseCode={}",
+                    payment.getId(), order.getId(), responseCode);
         }
 
         paymentRepository.save(payment);
         orderRepository.save(order);
 
-        return "SUCCESS";
+        // Trả về orderId thật để frontend navigate đúng trang
+        return String.valueOf(order.getId());
     }
 }

@@ -1,0 +1,44 @@
+.container {
+  text-align: center;
+  padding: 100px 20px;
+}
+
+.iconSmall {
+  font-size: 48px;
+}
+
+.iconLarge {
+  font-size: 64px;
+}
+
+.titleSuccess {
+  color: #16a34a;
+}
+
+.titleFailed {
+  color: #dc2626;
+}
+
+.titleError {
+  color: #d97706;
+}
+
+.textMuted {
+  color: #888;
+}
+
+.button {
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.button:hover {
+  opacity: 0.9;
+}

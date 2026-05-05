@@ -7,6 +7,7 @@ import e_commerce.platform.modules.cart.service.CartService;
 import e_commerce.platform.modules.coupon.dto.request.ApplyCouponRequest;
 import e_commerce.platform.modules.coupon.dto.response.CouponResponse;
 import e_commerce.platform.modules.coupon.service.CouponService;
+import e_commerce.platform.modules.inventory.service.InventoryService; // ✅ ADD
 import e_commerce.platform.modules.order.dto.request.CreateOrderRequest;
 import e_commerce.platform.modules.order.dto.response.OrderResponse;
 import e_commerce.platform.modules.order.entity.Order;
@@ -37,11 +38,12 @@ public class OrderServiceImpl implements OrderService {
     private final CouponService couponService;
     private final ProductRepository productRepository;
 
+    private final InventoryService inventoryService; // ✅ ADD
+
     @Override
     @Transactional
     public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
-        //Lấy cart
         CartResponse cart = cartService.getCart(username);
 
         if (cart.getItems().isEmpty()) {
@@ -67,7 +69,32 @@ public class OrderServiceImpl implements OrderService {
 
         double finalPrice = Math.max(0, totalPrice - discount);
 
-        // Tạo order
+        // ================== MAP ITEMS ==================
+        List<OrderItem> items = cart.getItems().stream().map(i -> {
+
+            Product product = productRepository.findById(i.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            double itemTotal = i.getPrice() * i.getQuantity();
+
+            return OrderItem.builder()
+                    .product(product)
+                    .productName(i.getProductName())
+                    .price(i.getPrice())
+                    .quantity(i.getQuantity())
+                    .totalPrice(itemTotal)
+                    .build();
+        }).toList();
+
+        // ================== 🔥 RESERVE STOCK NGAY ĐÂY ==================
+        items.forEach(i -> {
+            inventoryService.reserveStock(
+                    i.getProduct().getId(),
+                    i.getQuantity()
+            );
+        });
+
+        // ================== CREATE ORDER ==================
         Order order = Order.builder()
                 .username(username)
                 .totalPrice(totalPrice)
@@ -78,42 +105,23 @@ public class OrderServiceImpl implements OrderService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // Map order items (QUAN TRỌNG)
-        List<OrderItem> items = cart.getItems().stream().map(i -> {
-
-            Product product = productRepository.findById(i.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-            double itemTotal = i.getPrice() * i.getQuantity();
-
-            return OrderItem.builder()
-                    .product(product)                       // FK
-                    .productName(i.getProductName())        // snapshot từ cart
-                    .price(i.getPrice())                   // snapshot từ cart
-                    .quantity(i.getQuantity())
-                    .totalPrice(itemTotal)
-                    .order(order)
-                    .build();
-        }).toList();
-
+        items.forEach(i -> i.setOrder(order));
         order.setItems(items);
 
-        //Save DB
         orderRepository.save(order);
 
-        //Gửi Kafka
+        // ================== KAFKA (OPTIONAL) ==================
         items.forEach(i -> {
             orderProducer.sendOrderCreated(
                     OrderEvent.builder()
                             .orderId(order.getId())
-                            .productId(i.getProduct().getId()) 
+                            .productId(i.getProduct().getId())
                             .quantity(i.getQuantity())
                             .status("CREATED")
                             .build()
             );
         });
 
-        // Clear cart
         cartService.clearCart(username);
 
         return OrderMapper.toResponse(order);
@@ -126,5 +134,10 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         return OrderMapper.toResponse(order);
+    }
+
+    @Override
+    public List<Order> getOrdersByUser(String username) {
+        return orderRepository.findByUsername(username);
     }
 }

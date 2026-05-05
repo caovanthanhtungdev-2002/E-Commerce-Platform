@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./ChangePasswordPage.module.css";
-import { useUserStore } from "../store/userStore";
+import { useUserStore } from "../../store/userStore";
 
-import UserField from "../components/userfield/UserField";
-import UserButton from "../components/userbutton/UserButton";
-import UserFeedback from "../components/userfeedback/UserFeedback";
+import UserField from "../../components/userfield/UserField";
+import UserButton from "../../components/userbutton/UserButton";
+import UserFeedback from "../../components/userfeedback/UserFeedback";
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();

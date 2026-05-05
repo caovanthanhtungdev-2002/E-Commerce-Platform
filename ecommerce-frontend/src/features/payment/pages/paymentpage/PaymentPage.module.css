@@ -1,0 +1,145 @@
+.page {
+  background: #f5f5f5;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+/* HEADER */
+.header {
+  background: white;
+  padding: 16px 0;
+  border-bottom: 2px solid #ee4d2d;
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  color: #ee4d2d;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.step {
+  color: #999;
+}
+
+.activeStep {
+  color: #ee4d2d;
+  font-weight: bold;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+}
+
+/* BLOCK */
+.block {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* ADDRESS */
+.address {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.address strong {
+  color: #ee4d2d;
+}
+
+/* PRODUCT */
+.item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* VOUCHER */
+.voucherBox {
+  display: flex;
+  gap: 10px;
+}
+
+.voucherBox input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.voucherBox button {
+  background: #ee4d2d;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+/* PAYMENT */
+.methodItem {
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.methodItem:hover {
+  border-color: #ee4d2d;
+}
+
+.active {
+  border: 2px solid #ee4d2d;
+  background: #fff3f0;
+}
+
+/* RIGHT */
+.summary {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  position: sticky;
+  top: 20px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+.total {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ee4d2d;
+}
+
+.payBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: #ee4d2d;
+  color: white;
+  border: none;
+  cursor: pointer;
+}

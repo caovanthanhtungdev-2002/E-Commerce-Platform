@@ -33,10 +33,12 @@ public class CouponServiceImpl implements CouponService {
             throw new BadRequestException("Mã đã bị vô hiệu hóa");
         }
 
+    
         // hết hạn
-        if (coupon.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Mã đã hết hạn");
-        }
+if (coupon.getExpiryDate() != null &&
+    coupon.getExpiryDate().isBefore(LocalDateTime.now())) {
+    throw new BadRequestException("Mã đã hết hạn");
+}
 
         // hết lượt
         if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
@@ -44,12 +46,13 @@ public class CouponServiceImpl implements CouponService {
         }
 
         // chưa đủ tiền
-        if (request.getOrderAmount() < coupon.getMinOrderValue()) {
-            throw new BadRequestException("Chưa đạt giá trị tối thiểu");
-        }
+       if (coupon.getMinOrderValue() != null &&
+    request.getOrderAmount() < coupon.getMinOrderValue()) {
+    throw new BadRequestException("Chưa đạt giá trị tối thiểu");
+}
 
         //tính giảm giá
-        double discount = request.getOrderAmount() * (coupon.getDiscountPercent() / 100);
+       double discount = request.getOrderAmount() * (coupon.getDiscountPercent() / 100.0);
 
         //giới hạn max
         if (discount > coupon.getMaxDiscount()) {

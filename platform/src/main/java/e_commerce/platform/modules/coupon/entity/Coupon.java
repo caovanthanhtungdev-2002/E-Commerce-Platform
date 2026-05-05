@@ -27,7 +27,7 @@ public class Coupon {
     private double maxDiscount;
 
     // giá tối thiểu để áp dụng
-    private double minOrderValue;
+    private Double minOrderValue;
 
     private LocalDateTime expiryDate;
 
