@@ -13,4 +13,8 @@ export interface Order {
   couponCode?: string;
   status: string;
   items: OrderItem[];
+  // Thông tin giao hàng
+  receiverName: string;
+  phone: string;
+  address: string;
 }

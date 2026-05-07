@@ -18,4 +18,9 @@ public class OrderResponse {
     private Double discount;
     private Double finalPrice;
     private String couponCode;
+
+    // Thông tin giao hàng
+    private String receiverName;
+private String phone;
+private String address;
 }

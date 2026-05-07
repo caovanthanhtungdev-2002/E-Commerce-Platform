@@ -7,7 +7,7 @@ import e_commerce.platform.modules.cart.service.CartService;
 import e_commerce.platform.modules.coupon.dto.request.ApplyCouponRequest;
 import e_commerce.platform.modules.coupon.dto.response.CouponResponse;
 import e_commerce.platform.modules.coupon.service.CouponService;
-import e_commerce.platform.modules.inventory.service.InventoryService; // ✅ ADD
+import e_commerce.platform.modules.inventory.service.InventoryService; 
 import e_commerce.platform.modules.order.dto.request.CreateOrderRequest;
 import e_commerce.platform.modules.order.dto.response.OrderResponse;
 import e_commerce.platform.modules.order.entity.Order;

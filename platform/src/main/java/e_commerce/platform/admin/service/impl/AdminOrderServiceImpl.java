@@ -152,8 +152,6 @@ orderRepository.save(order);
             case PENDING   -> next == OrderStatus.PAID
                            || next == OrderStatus.CANCELLED;
                            
-            case PAYING -> "Đang thanh toán";
-
             case PAID      -> next == OrderStatus.COMPLETED
                            || next == OrderStatus.REFUNDED;
 

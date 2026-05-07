@@ -20,6 +20,9 @@ public class OrderMapper {
                 .discount(order.getDiscount())
                 .finalPrice(order.getFinalPrice())
                 .couponCode(order.getCouponCode())
+                 .receiverName(order.getReceiverName())
+        .phone(order.getPhone())
+        .address(order.getAddress())
                 .build();
     }
 

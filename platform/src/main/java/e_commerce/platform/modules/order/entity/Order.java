@@ -47,6 +47,8 @@ public class Order {
 
     private String couponCode;
 
+    private String receiverName;
+    
     private String address;
 
     private String phone;

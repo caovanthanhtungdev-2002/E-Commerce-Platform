@@ -89,13 +89,12 @@ export default function PaymentPage() {
           {/* ADDRESS */}
           <div className={styles.block}>
             <div className={styles.title}>Địa chỉ nhận hàng</div>
-            <div className={styles.address}>
-              <div>
-                <strong>Nguyễn Văn A</strong> | 0123456789 <br />
-                123 Đường ABC, Quận 1, TP.HCM
-              </div>
-              <button>Thay đổi</button>
-            </div>
+<div className={styles.address}>
+  <div>
+    <strong>{currentOrder.receiverName}</strong> | {currentOrder.phone} <br />
+    {currentOrder.address}
+  </div>
+</div>
           </div>
 
           {/* PRODUCTS */}
