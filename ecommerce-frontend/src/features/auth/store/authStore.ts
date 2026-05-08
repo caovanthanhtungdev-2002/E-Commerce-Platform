@@ -34,29 +34,36 @@ export const useAuthStore = create<AuthState>()(
        * LOGIN
        * gọi API login → lưu token + user
        */
-      login: async (data) => {
+   login: async (data) => {
   set({ isLoading: true, error: null });
 
   try {
-  
     const result = await authService.login(data);
 
+    const fakeUser = {
+      fullName: data.email.split("@")[0],
+      username: data.email.split("@")[0],
+      email: data.email,
+      role: result.role || "USER",
+    };
+
     set({
-      user: result.user,
+      user: fakeUser,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       isLoading: false,
     });
+
   } catch (err: any) {
     set({
-      error: err?.response?.data?.message || 'Login failed',
+      error: err?.response?.data?.message || "Login failed",
       isLoading: false,
-      accessToken: null, 
+      accessToken: null,
       refreshToken: null,
       user: null,
     });
 
-    throw err; 
+    throw err;
   }
 },
 

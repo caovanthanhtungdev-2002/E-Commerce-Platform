@@ -12,7 +12,7 @@ interface CartState {
   removeFromCart: (productId: number) => Promise<void>;
   clearCart: () => Promise<void>;
 
-  // 👇 FIX
+  
   toggleSelect: (productId: number) => void;
   updateQuantity: (productId: number, newQty: number) => Promise<void>;
 }
@@ -22,26 +22,35 @@ export const useCartStore = create<CartState>((set, get) => ({
   totalPrice: 0,
   loading: false,
 
-  fetchCart: async () => {
-    set({ loading: true });
+ fetchCart: async () => {
+  set({ loading: true });
 
-    try {
-      const data = await cartService.getCart();
+  try {
+    const data = await cartService.getCart();
 
-      set({
-        items: data.items.map((i) => ({
+    set((state) => ({
+      items: data.items.map((i) => {
+        const oldItem = state.items.find(
+          (old) => old.productId === i.productId
+        );
+
+        return {
           ...i,
-          selected: true, // mặc định chọn hết
-        })),
-        totalPrice: data.totalPrice,
-        loading: false,
-      });
-    } catch (err) {
-      console.error(err);
-      set({ loading: false });
-    }
-  },
+          // giữ trạng thái selected cũ
+          selected: oldItem?.selected ?? true,
+        };
+      }),
 
+      totalPrice: data.totalPrice,
+      loading: false,
+    }));
+
+  } catch (err) {
+    console.error(err);
+
+    set({ loading: false });
+  }
+},
   addToCart: async (productId, quantity) => {
     await cartService.add(productId, quantity);
     await get().fetchCart();
@@ -60,7 +69,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ items: [], totalPrice: 0 });
   },
 
-  // ✅ FIX toggle
   toggleSelect: (productId) => {
     set((state) => ({
       items: state.items.map((item) =>
@@ -71,7 +79,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     }));
   },
 
-  // ✅ FIX update quantity
+
   updateQuantity: async (productId, newQty) => {
     const item = get().items.find((i) => i.productId === productId);
     if (!item) return;

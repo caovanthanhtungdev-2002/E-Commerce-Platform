@@ -1,6 +1,14 @@
 import { create } from "zustand";
-import * as orderService from "../services/orderService";
-import type { Order } from "../types/orderTypes";
+
+import * as orderService
+  from "../services/orderService";
+
+import type { Order, CreateOrderRequest }
+  from "../types/orderTypes";
+
+// ========================================
+// STATE
+// ========================================
 
 interface OrderState {
   currentOrder: Order | null;
@@ -8,51 +16,112 @@ interface OrderState {
   loading: boolean;
   error: string | null;
 
-  create: (couponCode?: string) => Promise<void>;
+  create: (payload: CreateOrderRequest) => Promise<void>;
   fetchOrder: (id: number) => Promise<void>;
   fetchOrders: () => Promise<void>;
-  
 }
 
-export const useOrderStore = create<OrderState>((set) => ({
-  currentOrder: null,
-  orders: [],
-  loading: false,
-  error: null,
+// ========================================
+// STORE
+// ========================================
 
-  create: async (couponCode) => {
-    try {
-      set({ loading: true, error: null });
+export const useOrderStore =
+  create<OrderState>((set) => ({
 
-      const order = await orderService.createOrder(couponCode);
+    currentOrder: null,
+    orders: [],
+    loading: false,
+    error: null,
 
-      set({ currentOrder: order, loading: false });
-    } catch (err: any) {
-      set({ error: err.response?.data?.message || "Error", loading: false });
-    }
-  },
+    // =====================================
+    // CREATE ORDER
+    // =====================================
 
-  fetchOrder: async (id) => {
-    try {
-      set({ loading: true });
+    create: async (payload) => {
 
-      const order = await orderService.getOrder(id);
+      try {
 
-      set({ currentOrder: order, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
-    }
-  },
+        set({ loading: true, error: null });
 
-  fetchOrders: async () => {
-    try {
-      set({ loading: true });
+        const order =
+          await orderService.createOrder(payload);
 
-      const orders = await orderService.fetchOrders();
+        set({
+          currentOrder: order,
+          loading: false,
+        });
 
-      set({ orders, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
-    }
-  },
-}));
+      } catch (err: any) {
+
+        set({
+          error:
+            err?.response?.data?.message ||
+            "Create order failed",
+          loading: false,
+        });
+
+        throw err;
+      }
+    },
+
+    // =====================================
+    // FETCH ONE
+    // =====================================
+
+    fetchOrder: async (id) => {
+
+      try {
+
+        set({ loading: true, error: null });
+
+        const order =
+          await orderService.getOrder(id);
+
+        set({
+          currentOrder: order,
+          loading: false,
+        });
+
+      } catch (err: any) {
+
+        set({
+          error:
+            err?.response?.data?.message ||
+            "Fetch order failed",
+          loading: false,
+        });
+
+      }
+    },
+
+    // =====================================
+    // FETCH ALL
+    // =====================================
+
+    fetchOrders: async () => {
+
+      try {
+
+        set({ loading: true, error: null });
+
+        const orders =
+          await orderService.fetchOrders();
+
+        set({
+          orders,
+          loading: false,
+        });
+
+      } catch (err: any) {
+
+        set({
+          error:
+            err?.response?.data?.message ||
+            "Fetch orders failed",
+          loading: false,
+        });
+
+      }
+    },
+
+  }));

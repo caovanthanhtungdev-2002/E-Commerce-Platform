@@ -38,7 +38,7 @@ public class OrderServiceImpl implements OrderService {
     private final CouponService couponService;
     private final ProductRepository productRepository;
 
-    private final InventoryService inventoryService; // ✅ ADD
+    private final InventoryService inventoryService; 
 
     @Override
     @Transactional
@@ -86,7 +86,7 @@ public class OrderServiceImpl implements OrderService {
                     .build();
         }).toList();
 
-        // ================== 🔥 RESERVE STOCK NGAY ĐÂY ==================
+        // ==================  RESERVE STOCK NGAY ĐÂY ==================
         items.forEach(i -> {
             inventoryService.reserveStock(
                     i.getProduct().getId(),
@@ -94,17 +94,32 @@ public class OrderServiceImpl implements OrderService {
             );
         });
 
-        // ================== CREATE ORDER ==================
-        Order order = Order.builder()
-                .username(username)
-                .totalPrice(totalPrice)
-                .discount(discount)
-                .finalPrice(finalPrice)
-                .couponCode(couponCode)
-                .status(OrderStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+   OrderStatus status;
 
+// COD
+if ("COD".equals(request.getPaymentMethod())) {
+
+    status = OrderStatus.PAID;
+
+} else {
+
+    // VNPAY
+    status = OrderStatus.PENDING;
+}
+
+Order order = Order.builder()
+        .username(username)
+        .totalPrice(totalPrice)
+        .discount(discount)
+        .finalPrice(finalPrice)
+        .couponCode(couponCode)
+        .status(status)
+        .createdAt(LocalDateTime.now())
+        .receiverName(request.getReceiverName())
+        .phone(request.getPhone())
+        .address(request.getAddress())
+        .build();
+        
         items.forEach(i -> i.setOrder(order));
         order.setItems(items);
 

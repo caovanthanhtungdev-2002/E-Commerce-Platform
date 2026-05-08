@@ -1,160 +1,285 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOrderStore } from "@/features/order/store/orderStore";
 import { usePaymentStore } from "@/features/payment/store/paymentStore";
 import { useNavigate, useParams } from "react-router-dom";
+import { formatCurrencyVND } from "@/utils/formatCurrency";
+import { getImageSrc } from "@/utils/getImage";
 import styles from "./PaymentPage.module.css";
 
+
 export default function PaymentPage() {
-  const { id } = useParams(); // route là /payment/:id
+
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const { currentOrder, fetchOrder, loading: orderLoading, error: orderError } = useOrderStore();
+  const {
+    currentOrder,
+    fetchOrder,
+    loading: orderLoading,
+    error: orderError,
+  } = useOrderStore();
+
   const { pay, loading: payLoading } = usePaymentStore();
 
-  const [method, setMethod] = useState("VNPAY");
-  const [voucher, setVoucher] = useState("");
-  const [fetched, setFetched] = useState(false); 
+  const [fetched, setFetched] = useState(false);
 
-  // Fetch order khi mount
+  // =========================================
+  // FETCH ORDER
+  // =========================================
+
   useEffect(() => {
     if (!id) return;
-
-    // Reset state cũ trước khi fetch mới
     useOrderStore.setState({ currentOrder: null, error: null });
-
-    fetchOrder(Number(id)).finally(() => {
-      setFetched(true); 
-    });
+    fetchOrder(Number(id)).finally(() => setFetched(true));
   }, [id]);
 
-  // Redirect nếu đã PAID
+  // =========================================
+  // REDIRECT NẾU ĐÃ PAID
+  // =========================================
+
   useEffect(() => {
     if (currentOrder?.status === "PAID") {
       navigate(`/orders/${currentOrder.id}`);
     }
   }, [currentOrder]);
 
-  // ===== LOADING =====
+  // =========================================
+  // LOADING
+  // =========================================
+
   if (!fetched || orderLoading) {
     return (
-      <div style={{ textAlign: "center", padding: 80 }}>
+      <div className={styles.center}>
+        <div className={styles.loadingSpinner} />
         <p>Đang tải đơn hàng...</p>
       </div>
     );
   }
 
-  // ===== ERROR =====
+  // =========================================
+  // ERROR
+  // =========================================
+
   if (orderError || !currentOrder) {
     return (
-      <div style={{ textAlign: "center", padding: 80 }}>
-        <p style={{ color: "red" }}>
-         {orderError || "Không tìm thấy đơn hàng"}
+      <div className={styles.center}>
+        <span className={styles.errorIcon}>⚠️</span>
+        <p className={styles.errorText}>
+          {orderError || "Không tìm thấy đơn hàng"}
         </p>
-        <button onClick={() => navigate("/orders")}>← Quay lại đơn hàng</button>
+        <button className={styles.backBtn} onClick={() => navigate("/orders")}>
+          ← Quay lại đơn hàng
+        </button>
       </div>
     );
   }
 
-  // ===== HANDLE PAY =====
+  // =========================================
+  // HANDLE PAY → redirect VNPAY
+  // =========================================
+
   const handlePay = async () => {
     if (currentOrder.status !== "PENDING") {
       alert("Đơn hàng không hợp lệ để thanh toán");
       return;
     }
-
-    if (method === "COD") {
-      navigate(`/orders/${currentOrder.id}`);
-      return;
-    }
-
     try {
       const url = await pay(currentOrder.id);
-      if (url) {
-        window.location.href = url;
-      }
+      if (url) window.location.href = url;
     } catch (err: any) {
-      console.error(err);
       alert(err?.response?.data?.message || "Thanh toán thất bại");
     }
   };
 
-  // ===== RENDER =====
+  // =========================================
+  // UI
+  // =========================================
+
   return (
     <div className={styles.page}>
+
+      {/* BREADCRUMB */}
+      <div className={styles.breadcrumb}>
+        <span
+          style={{ cursor: "pointer", color: "#888" }}
+          onClick={() => navigate("/cart")}
+        >
+          Giỏ hàng
+        </span>
+        <span className={styles.chevron}>›</span>
+        <span
+          style={{ cursor: "pointer", color: "#888" }}
+          onClick={() => navigate(-1)}
+        >
+          Thanh toán
+        </span>
+        <span className={styles.chevron}>›</span>
+        <span className={styles.active}>Xác nhận &amp; Thanh toán</span>
+      </div>
+
       <div className={styles.container}>
 
-        {/* LEFT */}
-        <div>
+        {/* ================================= */}
+        {/* LEFT                              */}
+        {/* ================================= */}
 
-          {/* ADDRESS */}
-          <div className={styles.block}>
-            <div className={styles.title}>Địa chỉ nhận hàng</div>
-<div className={styles.address}>
-  <div>
-    <strong>{currentOrder.receiverName}</strong> | {currentOrder.phone} <br />
-    {currentOrder.address}
-  </div>
-</div>
-          </div>
+        <div className={styles.left}>
 
-          {/* PRODUCTS */}
-          <div className={styles.block}>
-            <div className={styles.title}>Sản phẩm</div>
-            {currentOrder.items.map((item) => (
-              <div key={item.productId} className={styles.item}>
-                <span>{item.productName} x{item.quantity}</span>
-                <span>{(item.price * item.quantity).toLocaleString()} đ</span>
+          {/* ĐỊA CHỈ GIAO HÀNG */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardHeaderIcon}>📍</span>
+              <span className={styles.cardHeaderTitle}>Địa chỉ nhận hàng</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.addressRow}>
+
+                <div className={styles.addressIcon}>📦</div>
+
+                <div className={styles.addressDetails}>
+                  {/* FIX: lấy từ currentOrder — đã được lưu server khi tạo đơn */}
+                  <div className={styles.addressName}>
+                    {currentOrder.receiverName || "—"}
+                  </div>
+                  <div className={styles.addressPhone}>
+                    📞 {currentOrder.phone || "—"}
+                  </div>
+                  <div className={styles.addressText}>
+                    {currentOrder.address || "—"}
+                  </div>
+                  <span className={styles.addressDefaultTag}>Địa chỉ giao hàng</span>
+                </div>
+
               </div>
-            ))}
-          </div>
-
-          {/* VOUCHER */}
-          <div className={styles.block}>
-            <div className={styles.title}>Voucher</div>
-            <div className={styles.voucherBox}>
-              <input
-                placeholder="Nhập mã giảm giá"
-                value={voucher}
-                onChange={(e) => setVoucher(e.target.value)}
-              />
-              <button>Áp dụng</button>
             </div>
           </div>
 
-          {/* PAYMENT METHOD */}
-          <div className={styles.block}>
-            <div className={styles.title}>Phương thức thanh toán</div>
-            <div
-              className={`${styles.methodItem} ${method === "VNPAY" ? styles.active : ""}`}
-              onClick={() => setMethod("VNPAY")}
-            >
-             VNPay
+          {/* SẢN PHẨM */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardHeaderIcon}>🛍️</span>
+              <span className={styles.cardHeaderTitle}>
+                Sản phẩm ({currentOrder.items.length})
+              </span>
+              <span className={styles.cardHeaderBadge}>
+                Đơn #{currentOrder.id}
+              </span>
             </div>
-            <div
-              className={`${styles.methodItem} ${method === "COD" ? styles.active : ""}`}
-              onClick={() => setMethod("COD")}
-            >
-              COD
+
+            <div className={styles.cardBody} style={{ padding: "0 20px" }}>
+              <div className={styles.itemList}>
+                {currentOrder.items.map((item) => (
+                  <div key={item.productId} className={styles.item}>
+
+                    <div className={styles.itemLeft}>
+                      {item.imageUrl ? (
+                        <img
+                          src={getImageSrc(item.imageUrl)}
+                          className={styles.itemImg}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className={styles.itemImgPlaceholder}>📱</div>
+                      )}
+                      <div className={styles.itemInfo}>
+                        <div className={styles.itemName}>{item.productName}</div>
+                        <span className={styles.itemQtyTag}>x{item.quantity}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.itemPrice}>
+                      {formatCurrencyVND(item.price * item.quantity)}
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.shippingRow}>
+              <div className={styles.shippingRowLeft}>
+                <span>🚚</span>
+                <span>Vận chuyển nhanh · Nhận trong 2–3 ngày</span>
+              </div>
+              <span className={styles.shippingFree}>Miễn phí</span>
             </div>
           </div>
+
+          {/* PHƯƠNG THỨC THANH TOÁN */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardHeaderIcon}>💳</span>
+              <span className={styles.cardHeaderTitle}>Phương thức thanh toán</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.methodDisplay}>
+                <span className={styles.methodIcon}>🏦</span>
+                <div className={styles.methodInfo}>
+                  <div className={styles.methodName}>VNPAY</div>
+                  <div className={styles.methodSub}>
+                    Thanh toán qua cổng VNPAY — ATM / Visa / QR
+                  </div>
+                </div>
+                <span className={styles.methodCheck}>✓</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        {/* RIGHT — SUMMARY */}
-        <div className={styles.summary}>
-          <h3>Tổng thanh toán</h3>
+        {/* ================================= */}
+        {/* RIGHT                             */}
+        {/* ================================= */}
 
-          <div className={styles.row}>
-            <span>Tạm tính</span>
-            <span>{currentOrder.totalPrice.toLocaleString()} đ</span>
-          </div>
+        <div className={styles.right}>
 
-          <div className={styles.row}>
-            <span>Giảm giá</span>
-            <span>-{currentOrder.discount.toLocaleString()} đ</span>
-          </div>
+          <div className={styles.summary}>
+            <div className={styles.summaryHeader}>Tổng thanh toán</div>
+            <div className={styles.summaryBody}>
 
-          <div className={styles.total}>
-            {currentOrder.finalPrice.toLocaleString()} đ
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryRowLabel}>
+                  Tạm tính ({currentOrder.items.length} sản phẩm)
+                </span>
+                <span className={styles.summaryRowValue}>
+                  {formatCurrencyVND(currentOrder.totalPrice)}
+                </span>
+              </div>
+
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryRowLabel}>Phí vận chuyển</span>
+                <span style={{ color: "#26aa99", fontWeight: 700, fontSize: "14px" }}>
+                  Miễn phí
+                </span>
+              </div>
+
+              {currentOrder.discount > 0 && (
+                <div className={styles.summaryRow}>
+                  <span className={styles.summaryRowLabel}>Giảm giá voucher</span>
+                  <span style={{ color: "#26aa99", fontWeight: 700, fontSize: "14px" }}>
+                    -{formatCurrencyVND(currentOrder.discount)}
+                  </span>
+                </div>
+              )}
+
+              <div className={styles.summaryDivider} />
+
+              <div className={styles.summaryTotal}>
+                <span className={styles.summaryTotalLabel}>Tổng cộng</span>
+                <span className={styles.summaryTotalValue}>
+                  {formatCurrencyVND(currentOrder.finalPrice)}
+                </span>
+              </div>
+
+              {currentOrder.discount > 0 && (
+                <p className={styles.savingsNote}>
+                  🎉 Bạn tiết kiệm {formatCurrencyVND(currentOrder.discount)}
+                </p>
+              )}
+
+            </div>
           </div>
 
           <button
@@ -162,12 +287,32 @@ export default function PaymentPage() {
             onClick={handlePay}
             disabled={payLoading || currentOrder.status !== "PENDING"}
           >
-            {payLoading
-              ? "Đang xử lý..."
-              : currentOrder.status !== "PENDING"
-              ? "Không thể thanh toán"
-              : "Thanh toán"}
+            {payLoading ? (
+              <>
+                <span className={styles.payBtnIcon}>⏳</span>
+                Đang xử lý...
+              </>
+            ) : currentOrder.status !== "PENDING" ? (
+              "Không thể thanh toán"
+            ) : (
+              <>
+                <span className={styles.payBtnIcon}>🏦</span>
+                Thanh toán qua VNPAY
+              </>
+            )}
           </button>
+
+          <button
+            className={styles.cancelBtn}
+            onClick={() => navigate(`/orders/${currentOrder.id}`)}
+          >
+            Thanh toán sau
+          </button>
+
+          <div className={styles.secureNote}>
+            🔒 Thanh toán được bảo mật bởi VNPAY
+          </div>
+
         </div>
 
       </div>

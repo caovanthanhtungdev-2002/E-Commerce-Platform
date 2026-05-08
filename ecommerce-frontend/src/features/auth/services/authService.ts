@@ -14,14 +14,21 @@ export const authService = {
 login: async (data: LoginRequest) => {
   const res = await axiosInstance.post('/api/auth/login', data);
 
-  const { accessToken, refreshToken, role } = res.data.data;
+  const {
+    accessToken,
+    refreshToken,
+    user,
+  } = res.data.data;
 
-  // LƯU TOKEN
+  // lưu token
   localStorage.setItem("accessToken", accessToken);
   localStorage.setItem("refreshToken", refreshToken);
-  localStorage.setItem("role", role);
 
-  return res.data.data;
+  return {
+    accessToken,
+    refreshToken,
+    user,
+  };
 },
 
   register: (data: RegisterRequest) =>

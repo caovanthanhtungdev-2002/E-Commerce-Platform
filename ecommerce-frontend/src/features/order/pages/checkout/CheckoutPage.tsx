@@ -1,105 +1,393 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+
 import { useOrderStore } from "../../store/orderStore";
-import { useNavigate } from "react-router-dom";
-import styles from "./CheckoutPage.module.css";
 import { useCartStore } from "@/features/cart/store/cartStore";
+import { useUserStore } from "@/features/user/store/userStore";
+
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
 
+import styles from "./CheckoutPage.module.css";
+
+// =========================================
+// SESSION STORAGE KEYS
+// =========================================
+
+const SS_ITEMS   = "checkout_items";
+const SS_PHONE   = "checkout_phone";
+const SS_ADDRESS = "checkout_address";
+const SS_COUPON  = "checkout_coupon";
+const SS_METHOD  = "checkout_method";
 
 export default function CheckoutPage() {
-  const [coupon, setCoupon] = useState("");
 
-  const { create, loading } = useOrderStore();
-  const { items, totalPrice, fetchCart } = useCartStore();
+  // =========================================
+  // STATE — khởi tạo từ sessionStorage nếu có
+  // (giữ lại khi user nhấn back từ PaymentPage)
+  // =========================================
+
+  const [phone, setPhone] = useState(
+    () => sessionStorage.getItem(SS_PHONE) || ""
+  );
+  const [address, setAddress] = useState(
+    () => sessionStorage.getItem(SS_ADDRESS) || ""
+  );
+  const [coupon, setCoupon] = useState(
+    () => sessionStorage.getItem(SS_COUPON) || ""
+  );
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">(
+    () => (sessionStorage.getItem(SS_METHOD) as "COD" | "VNPAY") || "COD"
+  );
+
+  // Items khôi phục từ session (dùng khi back từ payment)
+  const [restoredItems, setRestoredItems] = useState<any[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(SS_ITEMS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // =========================================
+  // ROUTER
+  // =========================================
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const buyNowItem = location.state?.buyNowItem;
 
-  
+  // =========================================
+  // STORE
+  // =========================================
+
+  const { create, loading } = useOrderStore();
+  const { items, fetchCart } = useCartStore();
+  const { user, fetchProfile } = useUserStore();
+
+  // =========================================
+  // LOAD DATA
+  // =========================================
+
   useEffect(() => {
-    fetchCart();
+    // Chỉ fetch cart nếu không có buyNowItem VÀ không có items đã restore
+    if (!buyNowItem && restoredItems.length === 0) {
+      fetchCart();
+    }
+    fetchProfile();
   }, []);
 
+  // Tự điền phone/address từ profile CHỈ KHI chưa có trong sessionStorage
+  useEffect(() => {
+    if (user) {
+      if (!sessionStorage.getItem(SS_PHONE)) {
+        setPhone(user.phone || "");
+      }
+      if (!sessionStorage.getItem(SS_ADDRESS)) {
+        setAddress(user.address || "");
+      }
+    }
+  }, [user]);
+
+  // =========================================
+  // SYNC sessionStorage khi state thay đổi
+  // =========================================
+
+  useEffect(() => { sessionStorage.setItem(SS_PHONE,   phone);         }, [phone]);
+  useEffect(() => { sessionStorage.setItem(SS_ADDRESS, address);       }, [address]);
+  useEffect(() => { sessionStorage.setItem(SS_COUPON,  coupon);        }, [coupon]);
+  useEffect(() => { sessionStorage.setItem(SS_METHOD,  paymentMethod); }, [paymentMethod]);
+
+  // =========================================
+  // CHECKOUT ITEMS & TOTAL
+  // =========================================
+
+  // Ưu tiên: buyNowItem > cartItems live > restoredItems (khi back)
+  const liveCartItems = items.filter((item) => item.selected);
+
+  const checkoutItems = buyNowItem
+    ? [buyNowItem]
+    : liveCartItems.length > 0
+    ? liveCartItems
+    : restoredItems;
+
+  const finalTotal = checkoutItems.reduce(
+    (sum, item) => sum + Number(item.price) * item.quantity,
+    0
+  );
+
+  // =========================================
+  // VALIDATE & SUBMIT
+  // =========================================
+
+  const isValid = phone.trim() !== "" && address.trim() !== "";
+
   const handleCheckout = async () => {
-    await create(coupon);
+    if (!isValid) {
+      alert("Vui lòng điền số điện thoại và địa chỉ nhận hàng.");
+      return;
+    }
 
-    const order = useOrderStore.getState().currentOrder;
+    try {
+      // Lưu items vào session TRƯỚC khi tạo order
+      // (vì createOrder sẽ clearCart ở backend)
+      sessionStorage.setItem(SS_ITEMS, JSON.stringify(checkoutItems));
 
-    if (order) {
+      await create({
+        couponCode: coupon.trim() || undefined,
+        paymentMethod,
+        receiverName: user?.fullName || "",
+        phone: phone.trim(),
+        address: address.trim(),
+      });
+
+      const order = useOrderStore.getState().currentOrder;
+      if (!order) return;
+
+      if (paymentMethod === "COD") {
+        // COD xong → xoá session
+        clearCheckoutSession();
+        alert("Đặt hàng thành công!");
+        navigate(`/orders/${order.id}`);
+        return;
+      }
+
+      // VNPAY → giữ session để back về còn data
       navigate(`/payment/${order.id}`);
+
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Đặt hàng thất bại");
     }
   };
 
+  // Xoá session sau khi hoàn tất
+  const clearCheckoutSession = () => {
+    [SS_ITEMS, SS_PHONE, SS_ADDRESS, SS_COUPON, SS_METHOD].forEach(
+      (key) => sessionStorage.removeItem(key)
+    );
+  };
+
+  // =========================================
+  // UI
+  // =========================================
+
   return (
     <div className={styles.page}>
+
+      {/* BREADCRUMB */}
+      <div className={styles.breadcrumb}>
+        <span>🛒 Giỏ hàng</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span>Thanh toán</span>
+      </div>
+
       <div className={styles.container}>
-        
-        {/* LEFT */}
+
+        {/* ================================= */}
+        {/* LEFT                              */}
+        {/* ================================= */}
+
         <div className={styles.left}>
-          <h2>Checkout</h2>
 
-          <div className={styles.items}>
-  {items.map((item) => (
-    <div key={item.productId} className={styles.item}>
-      
-      
-     <div className={styles.itemLeft}>
-  <img
-    src={getImageSrc(item.imageUrl)}
-    className={styles.image}
-    onError={(e) => {
-      e.currentTarget.src = "https://picsum.photos/80";
-    }}
-  />
-
-  <div>
-    <h4>{item.productName}</h4>
-    <p>Qty: {item.quantity}</p>
-  </div>
-</div>
-
-      <div className={styles.itemRight}>
-  {formatCurrencyVND(item.price * item.quantity)}
-</div>
-
-    </div>
-  ))}
-</div>
-
-          <div className={styles.card}>
-            <p className={styles.label}>Coupon</p>
-            <input
-              placeholder="Enter coupon code"
-              value={coupon}
-              onChange={(e) => setCoupon(e.target.value)}
-            />
+          {/* SHIPPING INFO */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionHeaderIcon}>📍</span>
+              <span className={styles.sectionHeaderTitle}>Địa chỉ nhận hàng</span>
+            </div>
+            <div className={styles.shippingFields}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Số điện thoại</label>
+                <input
+                  className={styles.fieldInput}
+                  placeholder="Nhập số điện thoại"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Địa chỉ</label>
+                <input
+                  className={styles.fieldInput}
+                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
+
+          {/* PRODUCT LIST */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionHeaderIcon}>🛍️</span>
+              <span className={styles.sectionHeaderTitle}>
+                Sản phẩm ({checkoutItems.length})
+              </span>
+            </div>
+
+            <div className={styles.items}>
+              {checkoutItems.length === 0 ? (
+                <div style={{ padding: "20px", color: "#aaa", fontSize: "14px", textAlign: "center" }}>
+                  Không có sản phẩm nào
+                </div>
+              ) : (
+                checkoutItems.map((item: any) => (
+                  <div key={item.productId} className={styles.item}>
+                    <div className={styles.itemLeft}>
+                      <img
+                        src={getImageSrc(item.imageUrl)}
+                        className={styles.image}
+                        onError={(e) => {
+                          e.currentTarget.src = "https://picsum.photos/72";
+                        }}
+                      />
+                      <div className={styles.itemInfo}>
+                        <h4>{item.productName}</h4>
+                        <div className={styles.itemMeta}>
+                          <span className={styles.itemQty}>x{item.quantity}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.itemRight}>
+                      {formatCurrencyVND(item.price * item.quantity)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className={styles.shippingMethod}>
+              <div className={styles.shippingMethodLeft}>
+                <span>🚚</span>
+                <span className={styles.shippingMethodLabel}>Vận chuyển nhanh</span>
+                <span style={{ color: "#888", fontSize: "12px" }}>· Nhận hàng trong 2–3 ngày</span>
+              </div>
+              <span className={styles.shippingMethodFree}>Miễn phí</span>
+            </div>
+          </div>
+
+          {/* VOUCHER */}
+          <div className={styles.sectionCard}>
+            <div className={styles.voucherRow}>
+              <div className={styles.voucherLeft}>
+                <span>🎟️</span>
+                Mã giảm giá
+              </div>
+              <input
+                className={styles.voucherInput}
+                placeholder="Nhập mã giảm giá"
+                value={coupon}
+                onChange={(e) => setCoupon(e.target.value)}
+              />
+              <button className={styles.voucherApply}>Áp dụng</button>
+            </div>
+          </div>
+
         </div>
 
-        {/* RIGHT */}
+        {/* ================================= */}
+        {/* RIGHT                             */}
+        {/* ================================= */}
+
         <div className={styles.right}>
+
+          {/* ORDER SUMMARY */}
           <div className={styles.summary}>
-            <h3>Order Summary</h3>
-
-            <div className={styles.row}>
-  <span>Subtotal</span>
-  <span>{formatCurrencyVND(totalPrice)}</span>
-</div>
-
-<div className={styles.row}>
-  <span>Discount</span>
-  <span>{formatCurrencyVND(0)}</span>
-</div>
-
-<div className={styles.total}>
-  <span>Total</span>
-  <span>{formatCurrencyVND(totalPrice)}</span>
-</div>
-
-            <button onClick={handleCheckout} disabled={loading}>
-              {loading ? "Processing..." : "Place Order"}
-            </button>
+            <div className={styles.summaryHeader}>
+              <h3>Tóm tắt đơn hàng</h3>
+            </div>
+            <div className={styles.summaryBody}>
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>
+                  Tạm tính ({checkoutItems.length} sản phẩm)
+                </span>
+                <span className={styles.rowValue}>
+                  {formatCurrencyVND(finalTotal)}
+                </span>
+              </div>
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>Phí vận chuyển</span>
+                <span style={{ color: "#26aa99", fontWeight: 600, fontSize: "14px" }}>
+                  Miễn phí
+                </span>
+              </div>
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>Giảm giá voucher</span>
+                <span className={styles.rowValue}>{formatCurrencyVND(0)}</span>
+              </div>
+              <div className={styles.divider} />
+              <div className={styles.totalRow}>
+                <span className={styles.totalLabel}>Tổng thanh toán</span>
+                <span className={styles.totalValue}>
+                  {formatCurrencyVND(finalTotal)}
+                </span>
+              </div>
+            </div>
           </div>
+
+          {/* PAYMENT METHODS */}
+          <div className={styles.paymentCard}>
+            <div className={styles.paymentHeader}>Phương thức thanh toán</div>
+            <div className={styles.paymentMethods}>
+
+              <label
+                className={`${styles.paymentOption} ${paymentMethod === "COD" ? styles.selected : ""}`}
+                onClick={() => setPaymentMethod("COD")}
+              >
+                <input
+                  type="radio"
+                  value="COD"
+                  checked={paymentMethod === "COD"}
+                  onChange={() => setPaymentMethod("COD")}
+                />
+                <span className={styles.paymentOptionIcon}>💵</span>
+                <div>
+                  <div className={styles.paymentOptionLabel}>Thanh toán khi nhận hàng</div>
+                  <div className={styles.paymentOptionSub}>COD — Trả tiền mặt khi nhận</div>
+                </div>
+              </label>
+
+              <label
+                className={`${styles.paymentOption} ${paymentMethod === "VNPAY" ? styles.selected : ""}`}
+                onClick={() => setPaymentMethod("VNPAY")}
+              >
+                <input
+                  type="radio"
+                  value="VNPAY"
+                  checked={paymentMethod === "VNPAY"}
+                  onChange={() => setPaymentMethod("VNPAY")}
+                />
+                <span className={styles.paymentOptionIcon}>🏦</span>
+                <div>
+                  <div className={styles.paymentOptionLabel}>VNPAY</div>
+                  <div className={styles.paymentOptionSub}>Thanh toán qua cổng VNPAY</div>
+                </div>
+              </label>
+
+            </div>
+          </div>
+
+          {/* PLACE ORDER */}
+          <button
+            className={styles.placeOrderBtn}
+            onClick={handleCheckout}
+            disabled={loading || !isValid}
+          >
+            {loading
+              ? "Đang xử lý..."
+              : `Đặt hàng · ${formatCurrencyVND(finalTotal)}`}
+          </button>
+
+          <p className={styles.termsNote}>
+            Bằng cách đặt hàng, bạn đồng ý với{" "}
+            <a href="#">Điều khoản dịch vụ</a> và{" "}
+            <a href="#">Chính sách bảo mật</a> của chúng tôi.
+          </p>
+
         </div>
 
       </div>

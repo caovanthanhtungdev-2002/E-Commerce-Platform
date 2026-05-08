@@ -1,17 +1,17 @@
-
-import './App.css'
 import { BrowserRouter, Routes } from 'react-router-dom';
-import { AuthRoutes } from './routes/AuthRoutes';
+import { AuthRoutes } from '@/routes/AuthRoutes';
+import { ToastContainer } from '@/components/Toast';
+import './global.css';
 
-
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
+      {/* Toast notifications - global */}
+      <ToastContainer />
+      
       <Routes>
-  {AuthRoutes()}   
+  {AuthRoutes()}
 </Routes>
     </BrowserRouter>
   );
 }
-
-export default App

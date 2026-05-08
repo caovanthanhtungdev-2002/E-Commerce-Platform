@@ -31,6 +31,14 @@ public class ProductSpecification {
                         cb.lessThanOrEqualTo(root.get("price"), req.getMaxPrice()));
             }
 
+            if (req.getCategoryId() != null) {
+    predicate = cb.and(predicate,
+            cb.equal(
+                    root.get("category").get("id"),
+                    req.getCategoryId()
+            ));
+}
+
             return predicate;
         };
     }

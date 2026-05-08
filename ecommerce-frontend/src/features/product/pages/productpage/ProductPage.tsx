@@ -1,51 +1,276 @@
 import { useEffect, useState } from "react";
-import { useProductStore } from "../../store/productStore";
-import ProductCard from "../../components/productcard/ProductCard";
+import { Link, useSearchParams } from "react-router-dom";
+import { useProductStore } from "@/features/product/store/productStore";
+import { useCategoryStore } from "@/features/category/store/categoryStore";
+import { useCartStore } from "@/features/cart/store/cartStore";
+import { formatCurrencyVND } from "@/utils/formatCurrency";
+import { getImageSrc } from "@/utils/getImage";
+import { useToast } from "@/components/Toast";
 import styles from "./ProductPage.module.css";
 
 export default function ProductPage() {
-  const { products, fetchProducts, searchProducts, loading } =
-    useProductStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
+  const [sortBy, setSortBy] = useState("default");
+  const [addingId, setAddingId] = useState<number | null>(null);
 
-  const [keyword, setKeyword] = useState("");
+  const { products, fetchProducts, searchProducts, loading, page, totalPages } = useProductStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { addToCart } = useCartStore();
+  const { showToast } = useToast();
+
+  const categoryId = searchParams.get("categoryId");
+  const minPrice = searchParams.get("minPrice");
+const maxPrice = searchParams.get("maxPrice");
+  const categoryName = searchParams.get("categoryName") || "Tất cả sản phẩm";
 
   useEffect(() => {
-    fetchProducts(0);
+    fetchCategories(0);
   }, []);
 
-  const handleSearch = () => {
-    searchProducts(keyword);
+ useEffect(() => {
+  const kw = searchParams.get("keyword") || "";
+  const categoryId = searchParams.get("categoryId");
+
+  setKeyword(kw);
+
+  // nếu có keyword hoặc category
+  if (kw || categoryId) {
+    searchProducts({
+  keyword: kw || undefined,
+
+  categoryId: categoryId
+    ? Number(categoryId)
+    : undefined,
+
+  minPrice: minPrice
+    ? Number(minPrice)
+    : undefined,
+
+  maxPrice: maxPrice
+    ? Number(maxPrice)
+    : undefined,
+});
+  } else {
+    fetchProducts(0);
+  }
+}, [searchParams]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (keyword.trim()) {
+      setSearchParams({ keyword: keyword.trim() });
+    } else {
+      setSearchParams({});
+    }
   };
+
+  const handleCategoryClick = (id: number, name: string) => {
+    setSearchParams({ categoryId: String(id), categoryName: name });
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: number, productName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAddingId(productId);
+    try {
+      await addToCart(productId, 1);
+      showToast(`Đã thêm "${productName}" vào giỏ hàng! 🛒`, "success");
+    } catch {
+      showToast("Thêm vào giỏ hàng thất bại", "error");
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  // Sort products
+  const sortedProducts = [...products].sort((a, b) => {
+    if (sortBy === "price-asc") return a.price - b.price;
+    if (sortBy === "price-desc") return b.price - a.price;
+    if (sortBy === "rating") return (b.avgRating || 0) - (a.avgRating || 0);
+    return 0;
+  });
 
   return (
     <div className={styles.page}>
-      <div className={styles.blob1}></div>
-      <div className={styles.blob2}></div>
+      <div className={styles.inner}>
+        {/* SIDEBAR */}
+        <aside className={styles.sidebar}>
+          <div className={styles.sideCard}>
+            <h3 className={styles.sideTitle}>📂 Danh mục</h3>
+            <button
+              className={`${styles.catBtn} ${!categoryId ? styles.catBtnActive : ""}`}
+              onClick={() => setSearchParams({})}
+            >
+              Tất cả sản phẩm
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                className={`${styles.catBtn} ${categoryId === String(cat.id) ? styles.catBtnActive : ""}`}
+                onClick={() => handleCategoryClick(cat.id, cat.name)}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
 
-      <div className={styles.container}>
-        <h1 className={styles.title}>Products</h1>
+          <div className={styles.sideCard}>
+            <h3 className={styles.sideTitle}>💰 Lọc giá</h3>
+            {[
+              { label: "Dưới 2 triệu", min: 0, max: 2000000 },
+              { label: "2 - 5 triệu", min: 2000000, max: 5000000 },
+              { label: "5 - 10 triệu", min: 5000000, max: 10000000 },
+              { label: "10 - 20 triệu", min: 10000000, max: 20000000 },
+              { label: "Trên 20 triệu", min: 20000000, max: 999999999 },
+            ].map((range) => (
+              <button
+                key={range.label}
+                className={styles.catBtn}
+                onClick={() => {
+  const params: any = {};
 
-        {/* Search */}
-        <div className={styles.searchBox}>
-          <input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Search product..."
-            className={styles.input}
-          />
-          <button onClick={handleSearch} className={styles.button}>
-            Search
-          </button>
-        </div>
+  if (categoryId) {
+    params.categoryId = categoryId;
+    params.categoryName = categoryName;
+  }
 
-        {/* Loading */}
-        {loading && <p className={styles.message}>Loading...</p>}
+  params.minPrice = range.min;
+  params.maxPrice = range.max;
 
-        {/* List */}
-        <div className={styles.grid}>
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+  setSearchParams(params);
+}}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* MAIN */}
+        <div className={styles.main}>
+          {/* BREADCRUMB + TITLE */}
+          <div className={styles.topBar}>
+            <div className={styles.breadcrumb}>
+              <Link to="/">Trang chủ</Link>
+              <span>/</span>
+              <span>{categoryName}</span>
+            </div>
+            <h1 className={styles.pageTitle}>{categoryName}</h1>
+          </div>
+
+          {/* SEARCH + SORT */}
+          <div className={styles.filterBar}>
+            <form className={styles.searchForm} onSubmit={handleSearch}>
+              <input
+                className={styles.searchInput}
+                placeholder="Tìm kiếm sản phẩm..."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+              <button type="submit" className={styles.searchBtn}>🔍 Tìm</button>
+            </form>
+
+            <div className={styles.sortWrap}>
+              <span>Sắp xếp:</span>
+              <select
+                className={styles.sortSelect}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="price-asc">Giá thấp → cao</option>
+                <option value="price-desc">Giá cao → thấp</option>
+                <option value="rating">Đánh giá cao nhất</option>
+              </select>
+            </div>
+          </div>
+
+          {/* COUNT */}
+          <div className={styles.resultCount}>
+            {loading ? "Đang tải..." : `Tìm thấy ${products.length} sản phẩm`}
+          </div>
+
+          {/* GRID */}
+          {loading ? (
+            <div className={styles.loadingGrid}>
+              {[...Array(8)].map((_, i) => <div key={i} className={styles.skeleton} />)}
+            </div>
+          ) : (
+            <div className={styles.grid}>
+              {sortedProducts.map((p) => (
+                <Link key={p.id} to={`/products/${p.id}`} className={styles.card}>
+                  <div className={styles.cardImg}>
+                    <img
+                      src={getImageSrc(p.imageUrl)}
+                      alt={p.name}
+                      onError={(e) => { e.currentTarget.src = "https://placehold.co/200x200/f5f5f5/999?text=SP"; }}
+                    />
+                  </div>
+                  <div className={styles.cardBody}>
+                    <p className={styles.cardCat}>{p.categoryName}</p>
+                    <h3 className={styles.cardName}>{p.name}</h3>
+                    <div className={styles.cardPriceRow}>
+                      <span className={styles.cardPrice}>{formatCurrencyVND(p.price)}</span>
+                    </div>
+                    {p.avgRating ? (
+                      <div className={styles.cardRating}>
+                        {"★".repeat(Math.round(p.avgRating))}
+                        <span>{p.reviewCount} đánh giá</span>
+                      </div>
+                    ) : null}
+                    <button
+                      className={`${styles.cartBtn} ${addingId === p.id ? styles.cartBtnLoading : ""}`}
+                      onClick={(e) => handleAddToCart(e, p.id, p.name)}
+                      disabled={addingId === p.id}
+                    >
+                      {addingId === p.id ? "Đang thêm..." : "🛒 Thêm giỏ hàng"}
+                    </button>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                className={styles.pageBtn}
+                disabled={page === 0}
+                onClick={() =>
+  fetchProducts(
+    page - 1,
+    categoryId ? Number(categoryId) : undefined
+  )
+}
+              >← Trước</button>
+              {[...Array(Math.min(totalPages, 7))].map((_, i) => (
+                <button
+                  key={i}
+                  className={`${styles.pageNum} ${i === page ? styles.pageNumActive : ""}`}
+                 onClick={() =>
+  fetchProducts(
+    i,
+    categoryId ? Number(categoryId) : undefined
+  )
+}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                className={styles.pageBtn}
+                disabled={page + 1 >= totalPages}
+                onClick={() =>
+  fetchProducts(
+    page + 1,
+    categoryId ? Number(categoryId) : undefined
+  )
+}
+              >Sau →</button>
+            </div>
+          )}
         </div>
       </div>
     </div>

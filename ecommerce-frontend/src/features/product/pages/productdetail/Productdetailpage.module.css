@@ -1,0 +1,391 @@
+.page {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 16px 0 40px;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* BREADCRUMB */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: #d70018;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span:last-child {
+  color: #444;
+  font-weight: 500;
+}
+
+/* LOADING */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 16px;
+  color: #888;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #d70018;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* NOT FOUND */
+.notFound {
+  text-align: center;
+  padding: 80px 0;
+}
+
+.notFoundIcon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.backBtn {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: #d70018;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* DETAIL */
+.detail {
+  display: grid;
+  grid-template-columns: 480px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* IMAGE */
+.imageSection {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 120px;
+}
+
+.mainImage {
+  background: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  aspect-ratio: 1;
+}
+
+.mainImage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s;
+}
+
+.mainImage img:hover {
+  transform: scale(1.05);
+}
+
+.badges {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badge {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid;
+}
+
+/* INFO */
+.infoSection {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.categoryTag {
+  display: inline-block;
+  background: #fff5f5;
+  color: #d70018;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.productName {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+
+/* RATING */
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stars {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.ratingNum {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.reviewCount {
+  font-size: 13px;
+  color: #888;
+}
+
+/* PRICE */
+.priceBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.currentPrice {
+  font-size: 32px;
+  font-weight: 900;
+  color: #d70018;
+}
+
+.oldPrice {
+  font-size: 16px;
+  color: #aaa;
+  text-decoration: line-through;
+}
+
+.discountBadge {
+  background: #d70018;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.installment {
+  font-size: 13px;
+  color: #666;
+  background: #f0fff4;
+  border: 1.5px solid #d1fae5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+/* DESC */
+.descBox {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 10px;
+  border: 1px solid #f0f0f0;
+}
+
+.descBox h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #555;
+}
+
+.descBox p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* QUANTITY */
+.qtyRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.qtyLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.qtyControl {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.qtyBtn {
+  width: 38px;
+  height: 38px;
+  background: #f5f5f5;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qtyBtn:hover:not(:disabled) {
+  background: #ffe8e8;
+  color: #d70018;
+}
+
+.qtyBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.qtyNum {
+  min-width: 44px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.buyNowBtn {
+  padding: 14px;
+  background: #d70018;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(215,0,24,0.3);
+}
+
+.buyNowBtn:hover:not(:disabled) {
+  background: #b0001a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(215,0,24,0.4);
+}
+
+.addCartBtn {
+  padding: 14px;
+  background: #fff;
+  color: #d70018;
+  border: 2px solid #d70018;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addCartBtn:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
+.adding {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.totalPreview {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.totalPreview strong {
+  color: #d70018;
+  font-size: 15px;
+}
+
+/* POLICIES */
+.policies {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.policyItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #444;
+}
+
+/* RESPONSIVE */
+@media (max-width: 960px) {
+  .detail {
+    grid-template-columns: 1fr;
+  }
+  .imageSection {
+    position: static;
+  }
+}

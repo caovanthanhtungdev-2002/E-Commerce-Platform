@@ -23,7 +23,7 @@ export default function LoginPage() {
     const { accessToken } = useAuthStore.getState();
 
     if (accessToken) {
-      navigate('/');
+      navigate("/");
     }
   } catch (err) {
   }

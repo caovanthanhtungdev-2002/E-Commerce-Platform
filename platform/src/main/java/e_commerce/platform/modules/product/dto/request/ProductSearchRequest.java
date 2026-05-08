@@ -8,5 +8,6 @@ public class ProductSearchRequest {
     private String keyword;
     private Double minPrice;
     private Double maxPrice;
+    private Long categoryId;
    
 }

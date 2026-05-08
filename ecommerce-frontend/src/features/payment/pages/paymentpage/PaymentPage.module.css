@@ -1,145 +1,514 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+/* =========================================
+   BASE
+   ========================================= */
+
 .page {
-  background: #f5f5f5;
   min-height: 100vh;
-  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  padding: 24px 16px 60px;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
 }
 
-/* HEADER */
-.header {
-  background: white;
-  padding: 16px 0;
-  border-bottom: 2px solid #ee4d2d;
-}
-
-.headerInner {
-  max-width: 1200px;
-  margin: auto;
+/* BREADCRUMB */
+.breadcrumb {
+  max-width: 1160px;
+  margin: 0 auto 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
+  font-size: 13px;
+  color: #888;
 }
 
-.logo {
+.breadcrumb .active {
   color: #ee4d2d;
-  font-size: 24px;
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.step {
-  color: #999;
-}
-
-.activeStep {
+.chevron {
   color: #ee4d2d;
-  font-weight: bold;
+  font-size: 11px;
 }
 
 /* CONTAINER */
 .container {
-  max-width: 1200px;
-  margin: 20px auto;
+  max-width: 1160px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 20px;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+  align-items: start;
 }
 
-/* BLOCK */
-.block {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+/* =========================================
+   CARDS
+   ========================================= */
+
+.card {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+  overflow: hidden;
+  animation: fadeUp 0.3s ease both;
 }
 
-.title {
-  font-weight: bold;
-  margin-bottom: 10px;
+.card:nth-child(2) { animation-delay: 0.06s; }
+.card:nth-child(3) { animation-delay: 0.12s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ADDRESS */
-.address {
+.cardHeader {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  background: #fafafa;
+}
+
+.cardHeaderIcon {
+  font-size: 16px;
+}
+
+.cardHeaderTitle {
   font-size: 14px;
+  font-weight: 700;
+  color: #222;
 }
 
-.address strong {
+.cardHeaderBadge {
+  margin-left: auto;
+  background: #fff0ed;
   color: #ee4d2d;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
 }
 
-/* PRODUCT */
+.cardBody {
+  padding: 18px 20px;
+}
+
+/* =========================================
+   ADDRESS BLOCK
+   ========================================= */
+
+.addressRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.addressIcon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #ff6b35, #ee4d2d);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(238,77,45,0.25);
+}
+
+.addressDetails {
+  flex: 1;
+}
+
+.addressName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 3px;
+}
+
+.addressPhone {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 5px;
+}
+
+.addressText {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.55;
+}
+
+.addressDefaultTag {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 2px 8px;
+  border: 1px solid #ee4d2d;
+  color: #ee4d2d;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 2px;
+  letter-spacing: 0.3px;
+}
+
+/* =========================================
+   PRODUCT ITEMS
+   ========================================= */
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+}
+
 .item {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
+  padding: 14px 0;
+  border-bottom: 1px solid #f8f8f8;
+  gap: 12px;
 }
 
-/* VOUCHER */
-.voucherBox {
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemLeft {
   display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemImg {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  background: #fafafa;
+}
+
+.itemImgPlaceholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f5f5f5, #ebebeb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.itemQtyTag {
+  display: inline-block;
+  background: #f5f5f5;
+  color: #777;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.itemPrice {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ee4d2d;
+  white-space: nowrap;
+}
+
+/* SHIPPING ROW */
+.shippingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid #f5f5f5;
+  background: #fffaf9;
+  font-size: 13px;
+}
+
+.shippingRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #555;
+}
+
+.shippingFree {
+  font-weight: 700;
+  color: #26aa99;
+  font-size: 13px;
+}
+
+/* =========================================
+   PAYMENT METHOD BLOCK
+   ========================================= */
+
+.methodDisplay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid #ee4d2d;
+  border-radius: 6px;
+  background: #fff5f3;
+}
+
+.methodIcon {
+  font-size: 22px;
+}
+
+.methodInfo {
+  flex: 1;
+}
+
+.methodName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+}
+
+.methodSub {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.methodCheck {
+  color: #ee4d2d;
+  font-size: 18px;
+}
+
+/* =========================================
+   RIGHT — SUMMARY
+   ========================================= */
+
+.right {
+  position: sticky;
+  top: 16px;
+  animation: fadeUp 0.25s ease both;
+  animation-delay: 0.18s;
+}
+
+.summary {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.summaryHeader {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+}
+
+.summaryBody {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.voucherBox input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
-.voucherBox button {
-  background: #ee4d2d;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  cursor: pointer;
-}
-
-/* PAYMENT */
-.methodItem {
-  padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  cursor: pointer;
-}
-
-.methodItem:hover {
-  border-color: #ee4d2d;
-}
-
-.active {
-  border: 2px solid #ee4d2d;
-  background: #fff3f0;
-}
-
-/* RIGHT */
-.summary {
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  position: sticky;
-  top: 20px;
-}
-
-.row {
+.summaryRow {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0;
+  align-items: center;
+  font-size: 14px;
 }
 
-.total {
-  font-size: 18px;
-  font-weight: bold;
+.summaryRowLabel {
+  color: #888;
+}
+
+.summaryRowValue {
+  font-weight: 500;
+  color: #333;
+}
+
+.summaryDivider {
+  height: 1px;
+  background: #f5f5f5;
+  margin: 4px 0;
+}
+
+.summaryTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.summaryTotalLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.summaryTotalValue {
+  font-size: 24px;
+  font-weight: 700;
   color: #ee4d2d;
 }
 
+.savingsNote {
+  font-size: 12px;
+  color: #26aa99;
+  text-align: right;
+  margin-top: -6px;
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+
 .payBtn {
   width: 100%;
-  margin-top: 16px;
   padding: 14px;
-  background: #ee4d2d;
-  color: white;
+  background: linear-gradient(135deg, #ee4d2d 0%, #ff6633 100%);
+  color: #fff;
   border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(238,77,45,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.payBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(238,77,45,0.45);
+}
+
+.payBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.payBtn:disabled {
+  background: #ccc;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.payBtnIcon {
+  font-size: 18px;
+}
+
+.cancelBtn {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  color: #555;
+  border: 1.5px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+  border-color: #aaa;
+  color: #333;
+}
+
+.secureNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 12px;
+}
+
+/* =========================================
+   LOADING / ERROR
+   ========================================= */
+
+.center {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  color: #666;
+}
+
+.loadingSpinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #ee4d2d;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorIcon {
+  font-size: 40px;
+}
+
+.errorText {
+  color: #ee4d2d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.backBtn {
+  padding: 10px 20px;
+  border: 1.5px solid #ee4d2d;
+  color: #ee4d2d;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.backBtn:hover {
+  background: #ee4d2d;
+  color: #fff;
 }
