@@ -21,7 +21,7 @@ export default function ProductPage() {
 
   const categoryId = searchParams.get("categoryId");
   const minPrice = searchParams.get("minPrice");
-const maxPrice = searchParams.get("maxPrice");
+  const maxPrice = searchParams.get("maxPrice");
   const categoryName = searchParams.get("categoryName") || "Tất cả sản phẩm";
 
   useEffect(() => {
@@ -30,27 +30,17 @@ const maxPrice = searchParams.get("maxPrice");
 
  useEffect(() => {
   const kw = searchParams.get("keyword") || "";
-  const categoryId = searchParams.get("categoryId");
 
   setKeyword(kw);
 
-  // nếu có keyword hoặc category
-  if (kw || categoryId) {
+  // Nếu có bất kỳ filter nào → dùng searchProducts
+  if (kw || categoryId || minPrice || maxPrice) {
     searchProducts({
-  keyword: kw || undefined,
-
-  categoryId: categoryId
-    ? Number(categoryId)
-    : undefined,
-
-  minPrice: minPrice
-    ? Number(minPrice)
-    : undefined,
-
-  maxPrice: maxPrice
-    ? Number(maxPrice)
-    : undefined,
-});
+      keyword: kw || undefined,
+      categoryId: categoryId ? Number(categoryId) : undefined,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    });
   } else {
     fetchProducts(0);
   }

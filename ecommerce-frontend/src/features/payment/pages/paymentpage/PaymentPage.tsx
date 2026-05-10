@@ -34,12 +34,22 @@ export default function PaymentPage() {
   }, [id]);
 
   // =========================================
+  // CHẶN BACK VỀ CHECKOUT
+  // =========================================
+
+  useEffect(() => {
+    if (!id) return;
+    // Thay thế history entry để back không về checkout
+    window.history.replaceState(null, "", `/payment/${id}`);
+  }, [id]);
+
+  // =========================================
   // REDIRECT NẾU ĐÃ PAID
   // =========================================
 
   useEffect(() => {
     if (currentOrder?.status === "PAID") {
-      navigate(`/orders/${currentOrder.id}`);
+      navigate(`/orders/${currentOrder.id}`, { replace: true });
     }
   }, [currentOrder]);
 
@@ -109,7 +119,7 @@ export default function PaymentPage() {
         <span className={styles.chevron}>›</span>
         <span
           style={{ cursor: "pointer", color: "#888" }}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/cart")}
         >
           Thanh toán
         </span>
@@ -137,7 +147,6 @@ export default function PaymentPage() {
                 <div className={styles.addressIcon}>📦</div>
 
                 <div className={styles.addressDetails}>
-                  {/* FIX: lấy từ currentOrder — đã được lưu server khi tạo đơn */}
                   <div className={styles.addressName}>
                     {currentOrder.receiverName || "—"}
                   </div>
@@ -302,9 +311,10 @@ export default function PaymentPage() {
             )}
           </button>
 
+          {/* Thanh toán sau → về trang quản lý đơn hàng, không về checkout */}
           <button
             className={styles.cancelBtn}
-            onClick={() => navigate(`/orders/${currentOrder.id}`)}
+            onClick={() => navigate(`/orders/${currentOrder.id}`, { replace: true })}
           >
             Thanh toán sau
           </button>

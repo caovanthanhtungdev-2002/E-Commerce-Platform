@@ -10,10 +10,6 @@ import { getImageSrc } from "@/utils/getImage";
 
 import styles from "./CheckoutPage.module.css";
 
-// =========================================
-// SESSION STORAGE KEYS
-// =========================================
-
 const SS_ITEMS   = "checkout_items";
 const SS_PHONE   = "checkout_phone";
 const SS_ADDRESS = "checkout_address";
@@ -21,11 +17,6 @@ const SS_COUPON  = "checkout_coupon";
 const SS_METHOD  = "checkout_method";
 
 export default function CheckoutPage() {
-
-  // =========================================
-  // STATE — khởi tạo từ sessionStorage nếu có
-  // (giữ lại khi user nhấn back từ PaymentPage)
-  // =========================================
 
   const [phone, setPhone] = useState(
     () => sessionStorage.getItem(SS_PHONE) || ""
@@ -40,88 +31,68 @@ export default function CheckoutPage() {
     () => (sessionStorage.getItem(SS_METHOD) as "COD" | "VNPAY") || "COD"
   );
 
-  // Items khôi phục từ session (dùng khi back từ payment)
-  const [restoredItems, setRestoredItems] = useState<any[]>(() => {
-    try {
-      const saved = sessionStorage.getItem(SS_ITEMS);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // =========================================
-  // ROUTER
-  // =========================================
+  const [cartReady, setCartReady] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
   const buyNowItem = location.state?.buyNowItem;
 
-  // =========================================
-  // STORE
-  // =========================================
-
   const { create, loading } = useOrderStore();
   const { items, fetchCart } = useCartStore();
   const { user, fetchProfile } = useUserStore();
 
-  // =========================================
-  // LOAD DATA
-  // =========================================
-
   useEffect(() => {
-    // Chỉ fetch cart nếu không có buyNowItem VÀ không có items đã restore
-    if (!buyNowItem && restoredItems.length === 0) {
-      fetchCart();
-    }
+    // Xóa order cũ để tránh redirect nhầm
+    useOrderStore.setState({ currentOrder: null });
+    sessionStorage.removeItem(SS_ITEMS);
     fetchProfile();
+
+    if (buyNowItem) {
+      setCartReady(true);
+      return;
+    }
+
+    // Kiểm tra state hiện tại trong store — không fetch lại để giữ tick
+    const selected = useCartStore.getState().items.filter(i => i.selected);
+    if (selected.length === 0) {
+      // Không có item được chọn → về cart
+      navigate("/cart", { replace: true });
+      return;
+    }
+
+    setCartReady(true);
   }, []);
 
-  // Tự điền phone/address từ profile CHỈ KHI chưa có trong sessionStorage
   useEffect(() => {
     if (user) {
-      if (!sessionStorage.getItem(SS_PHONE)) {
-        setPhone(user.phone || "");
-      }
-      if (!sessionStorage.getItem(SS_ADDRESS)) {
-        setAddress(user.address || "");
-      }
+      if (!sessionStorage.getItem(SS_PHONE)) setPhone(user.phone || "");
+      if (!sessionStorage.getItem(SS_ADDRESS)) setAddress(user.address || "");
     }
   }, [user]);
-
-  // =========================================
-  // SYNC sessionStorage khi state thay đổi
-  // =========================================
 
   useEffect(() => { sessionStorage.setItem(SS_PHONE,   phone);         }, [phone]);
   useEffect(() => { sessionStorage.setItem(SS_ADDRESS, address);       }, [address]);
   useEffect(() => { sessionStorage.setItem(SS_COUPON,  coupon);        }, [coupon]);
   useEffect(() => { sessionStorage.setItem(SS_METHOD,  paymentMethod); }, [paymentMethod]);
 
-  // =========================================
-  // CHECKOUT ITEMS & TOTAL
-  // =========================================
-
-  // Ưu tiên: buyNowItem > cartItems live > restoredItems (khi back)
   const liveCartItems = items.filter((item) => item.selected);
 
   const checkoutItems = buyNowItem
     ? [buyNowItem]
-    : liveCartItems.length > 0
-    ? liveCartItems
-    : restoredItems;
+    : liveCartItems;
 
   const finalTotal = checkoutItems.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
-  // =========================================
-  // VALIDATE & SUBMIT
-  // =========================================
-
   const isValid = phone.trim() !== "" && address.trim() !== "";
+
+  const clearCheckoutSession = () => {
+    [SS_ITEMS, SS_PHONE, SS_ADDRESS, SS_COUPON, SS_METHOD].forEach(
+      (key) => sessionStorage.removeItem(key)
+    );
+  };
 
   const handleCheckout = async () => {
     if (!isValid) {
@@ -129,10 +100,13 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (checkoutItems.length === 0) {
+      alert("Không có sản phẩm nào được chọn.");
+      return;
+    }
+
     try {
-      // Lưu items vào session TRƯỚC khi tạo order
-      // (vì createOrder sẽ clearCart ở backend)
-      sessionStorage.setItem(SS_ITEMS, JSON.stringify(checkoutItems));
+      const selectedProductIds = checkoutItems.map((i: any) => i.productId);
 
       await create({
         couponCode: coupon.trim() || undefined,
@@ -140,20 +114,19 @@ export default function CheckoutPage() {
         receiverName: user?.fullName || "",
         phone: phone.trim(),
         address: address.trim(),
+        selectedProductIds,
       });
 
       const order = useOrderStore.getState().currentOrder;
       if (!order) return;
 
       if (paymentMethod === "COD") {
-        // COD xong → xoá session
         clearCheckoutSession();
         alert("Đặt hàng thành công!");
         navigate(`/orders/${order.id}`);
         return;
       }
 
-      // VNPAY → giữ session để back về còn data
       navigate(`/payment/${order.id}`);
 
     } catch (err: any) {
@@ -161,21 +134,18 @@ export default function CheckoutPage() {
     }
   };
 
-  // Xoá session sau khi hoàn tất
-  const clearCheckoutSession = () => {
-    [SS_ITEMS, SS_PHONE, SS_ADDRESS, SS_COUPON, SS_METHOD].forEach(
-      (key) => sessionStorage.removeItem(key)
+  if (!cartReady) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "80px", flexDirection: "column", gap: "12px" }}>
+        <div style={{ width: "32px", height: "32px", border: "3px solid #eee", borderTop: "3px solid #e53935", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <p style={{ color: "#888", fontSize: "14px" }}>Đang tải giỏ hàng...</p>
+      </div>
     );
-  };
-
-  // =========================================
-  // UI
-  // =========================================
+  }
 
   return (
     <div className={styles.page}>
 
-      {/* BREADCRUMB */}
       <div className={styles.breadcrumb}>
         <span>🛒 Giỏ hàng</span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -186,13 +156,8 @@ export default function CheckoutPage() {
 
       <div className={styles.container}>
 
-        {/* ================================= */}
-        {/* LEFT                              */}
-        {/* ================================= */}
-
         <div className={styles.left}>
 
-          {/* SHIPPING INFO */}
           <div className={styles.sectionCard}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionHeaderIcon}>📍</span>
@@ -220,7 +185,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* PRODUCT LIST */}
           <div className={styles.sectionCard}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionHeaderIcon}>🛍️</span>
@@ -232,7 +196,7 @@ export default function CheckoutPage() {
             <div className={styles.items}>
               {checkoutItems.length === 0 ? (
                 <div style={{ padding: "20px", color: "#aaa", fontSize: "14px", textAlign: "center" }}>
-                  Không có sản phẩm nào
+                  Không có sản phẩm nào được chọn
                 </div>
               ) : (
                 checkoutItems.map((item: any) => (
@@ -270,7 +234,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* VOUCHER */}
           <div className={styles.sectionCard}>
             <div className={styles.voucherRow}>
               <div className={styles.voucherLeft}>
@@ -289,13 +252,8 @@ export default function CheckoutPage() {
 
         </div>
 
-        {/* ================================= */}
-        {/* RIGHT                             */}
-        {/* ================================= */}
-
         <div className={styles.right}>
 
-          {/* ORDER SUMMARY */}
           <div className={styles.summary}>
             <div className={styles.summaryHeader}>
               <h3>Tóm tắt đơn hàng</h3>
@@ -329,7 +287,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* PAYMENT METHODS */}
           <div className={styles.paymentCard}>
             <div className={styles.paymentHeader}>Phương thức thanh toán</div>
             <div className={styles.paymentMethods}>
@@ -371,11 +328,10 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* PLACE ORDER */}
           <button
             className={styles.placeOrderBtn}
             onClick={handleCheckout}
-            disabled={loading || !isValid}
+            disabled={loading || !isValid || checkoutItems.length === 0}
           >
             {loading
               ? "Đang xử lý..."

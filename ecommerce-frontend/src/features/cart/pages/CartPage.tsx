@@ -61,13 +61,17 @@ export default function CartPage() {
                   Chọn tất cả ({items.length} sản phẩm)
                 </label>
                 {selectedItems.length > 0 && (
-                  <button
-                    className={styles.deleteSelected}
-                    onClick={() => selectedItems.forEach(i => removeFromCart(i.productId))}
-                  >
-                    🗑 Xóa đã chọn
-                  </button>
-                )}
+  <button
+    className={styles.deleteSelected}
+    onClick={async () => {
+      for (const i of selectedItems) {
+        await removeFromCart(i.productId);
+      }
+    }}
+  >
+    🗑 Xóa đã chọn
+  </button>
+)}
               </div>
 
               {/* ITEMS */}

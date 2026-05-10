@@ -65,7 +65,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               e.currentTarget.style.display = "none";
               (e.currentTarget.nextSibling as HTMLElement).style.display = "block";
             }} />
-            <span style={{ display: "none" }} className={styles.logoText}>📱 TGDĐ</span>
+            <span style={{ display: "none" }} className={styles.logoText}>TGBNY</span>
           </Link>
 
           {/* SEARCH */}
@@ -168,9 +168,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 {cat.name}
               </Link>
             ))}
-            <Link to="/categories" className={styles.navItem}>
-              Tất cả →
-            </Link>
           </div>
         </nav>
       </header>

@@ -15,16 +15,10 @@ export interface Order {
   status: string;
   paymentMethod: string;
   items: OrderItem[];
-
-  // SHIPPING — khớp với OrderResponse.java
   receiverName: string;
   phone: string;
   address: string;
 }
-
-// ========================================
-// REQUEST DTO — khớp với CreateOrderRequest.java
-// ========================================
 
 export interface CreateOrderRequest {
   couponCode?: string;
@@ -32,4 +26,5 @@ export interface CreateOrderRequest {
   receiverName: string;
   phone: string;
   address: string;
+  selectedProductIds: number[];
 }
