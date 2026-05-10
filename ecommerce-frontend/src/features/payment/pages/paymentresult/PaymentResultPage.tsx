@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axiosInstance from "@/config/axios";
+import { useCartStore } from "@/features/cart/store/cartStore";
 import styles from "./PaymentResultPage.module.css";
 
 type Status = "loading" | "success" | "failed" | "error";
@@ -23,7 +24,7 @@ export default function PaymentResultPage() {
 
     axiosInstance
       .get(`/api/payments/vnpay/callback?${query}`)
-      .then((res) => {
+      .then(async (res) => {
         const orderId = res.data;
 
         if (
@@ -35,7 +36,24 @@ export default function PaymentResultPage() {
           return;
         }
 
-        setStatus(isSuccess ? "success" : "failed");
+        if (isSuccess) {
+          setStatus("success");
+
+          // Chỉ xóa các sản phẩm thuộc order vừa thanh toán
+          try {
+            const orderRes = await axiosInstance.get(`/api/orders/${orderId}`);
+            const orderItems = orderRes.data?.data?.items ?? [];
+
+            const { removeFromCart } = useCartStore.getState();
+            for (const item of orderItems) {
+              await removeFromCart(item.productId);
+            }
+          } catch (err) {
+            console.error("Không thể xóa sản phẩm khỏi giỏ hàng:", err);
+          }
+        } else {
+          setStatus("failed");
+        }
 
         setTimeout(() => {
           navigate(`/orders/${orderId}`);

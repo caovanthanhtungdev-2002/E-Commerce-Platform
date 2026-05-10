@@ -39,16 +39,11 @@ export const useAuthStore = create<AuthState>()(
 
   try {
     const result = await authService.login(data);
-
-    const fakeUser = {
-      fullName: data.email.split("@")[0],
-      username: data.email.split("@")[0],
-      email: data.email,
-      role: result.role || "USER",
-    };
-
+console.log(result);
+console.log(result.user);
+console.log(result.user.role);
     set({
-      user: fakeUser,
+      user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       isLoading: false,

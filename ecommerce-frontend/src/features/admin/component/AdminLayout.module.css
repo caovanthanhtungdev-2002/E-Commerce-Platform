@@ -1,0 +1,148 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f0f2f5;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: #1a1d2e;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid #2d3148;
+}
+
+.brandIcon {
+  font-size: 22px;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.nav {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #9aa0bc;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.navItem:hover {
+  background: #2d3148;
+  color: #fff;
+}
+
+.navItem.active {
+  background: #e53935;
+  color: #fff;
+}
+
+.navIcon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.navLabel {
+  white-space: nowrap;
+}
+
+.sidebarFooter {
+  padding: 16px 12px;
+  border-top: 1px solid #2d3148;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e53935;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.userRole {
+  font-size: 11px;
+  color: #e53935;
+  font-weight: 500;
+}
+
+.logoutBtn {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #2d3148;
+  background: transparent;
+  color: #9aa0bc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.logoutBtn:hover {
+  background: #2d3148;
+  color: #fff;
+}
+
+/* ===== MAIN ===== */
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}

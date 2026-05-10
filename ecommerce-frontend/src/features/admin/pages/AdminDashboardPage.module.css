@@ -1,0 +1,232 @@
+/* ===== SHARED ADMIN PAGE STYLES ===== */
+.page {
+  padding: 28px 32px;
+  max-width: 1400px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #888;
+  font-size: 15px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1d2e;
+  margin: 0;
+}
+
+.subtitle {
+  color: #888;
+  font-size: 13px;
+}
+
+/* ===== STAT CARDS ===== */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.statIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1d2e;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* ===== CHARTS ===== */
+.chartsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chartCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.chartTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1d2e;
+  margin: 0 0 16px;
+}
+
+.empty {
+  color: #bbb;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* BAR CHART */
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  overflow-x: auto;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 28px;
+}
+
+.barWrap {
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 20px;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s;
+}
+
+.barLabel {
+  font-size: 10px;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+/* STATUS */
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusName {
+  font-size: 12px;
+  color: #555;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.statusBarWrap {
+  flex: 1;
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.statusBar {
+  height: 100%;
+  background: #1976d2;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.statusCount {
+  font-size: 12px;
+  color: #888;
+  width: 30px;
+  text-align: right;
+}
+
+/* TOP PRODUCTS */
+.topList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.topItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topRank {
+  font-size: 12px;
+  font-weight: 700;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.topName {
+  font-size: 13px;
+  color: #333;
+  width: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topBarWrap {
+  flex: 1;
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.topBar {
+  height: 100%;
+  background: #e53935;
+  border-radius: 4px;
+}
+
+.topSold {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}

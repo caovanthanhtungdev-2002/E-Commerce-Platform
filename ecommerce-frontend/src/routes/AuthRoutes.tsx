@@ -18,7 +18,18 @@ import OrderDetailPage from '@/features/order/pages/detail/OrderDetailPage';
 import OrderHistoryPage from '@/features/order/pages/history/OrderHistoryPage';
 import PaymentPage from '@/features/payment/pages/paymentpage/PaymentPage';
 import PaymentResultPage from '@/features/payment/pages/paymentresult/PaymentResultPage';
-import MainLayout from '@/components/layout/Mainlayout';
+import MainLayout from '@/components/layout/MainLayout';
+
+//ADMIN
+import AdminGuard from '@/features/admin/component/AdminGuard';
+import AdminLayout from '@/features/admin/component/AdminLayout';
+import AdminDashboardPage from '@/features/admin/pages/AdminDashboardPage';
+import AdminProductsPage from '@/features/admin/pages/AdminProductsPage';
+import AdminCategoriesPage from '@/features/admin/pages/AdminCategoriesPage';
+import AdminOrdersPage from '@/features/admin/pages/AdminOrdersPage';
+import AdminUsersPage from '@/features/admin/pages/AdminUsersPage';
+import AdminCouponsPage from '@/features/admin/pages/AdminCouponsPage';
+import AdminInventoryPage from '@/features/admin/pages/AdminInventoryPage';
 
 function WithLayout({ children }: { children: React.ReactNode }) {
   return <MainLayout>{children}</MainLayout>;
@@ -58,6 +69,19 @@ export function AuthRoutes() {
       {/* PAYMENT */}
       <Route path="/payment/:id" element={<WithLayout><ProtectedRoute><PaymentPage /></ProtectedRoute></WithLayout>} />
       <Route path="/payment-result" element={<WithLayout><PaymentResultPage /></WithLayout>} />
+
+      {/* ✅ ADMIN - không dùng MainLayout, có sidebar riêng */}
+      <Route element={<AdminGuard />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="products" element={<AdminProductsPage />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="coupons" element={<AdminCouponsPage />} />
+          <Route path="inventory" element={<AdminInventoryPage />} />
+        </Route>
+      </Route>
     </>
   );
 }

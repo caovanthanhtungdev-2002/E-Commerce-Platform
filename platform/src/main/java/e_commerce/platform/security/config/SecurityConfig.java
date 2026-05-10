@@ -64,14 +64,22 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/cart").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/products/search").permitAll()
 
-                    //Admin only
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+                    // Admin + Root
+.requestMatchers("/api/admin/**")
+.hasAnyRole("ADMIN", "ROOT")
 
-                    //User
-                    .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+.requestMatchers(HttpMethod.POST, "/api/products/**")
+.hasAnyRole("ADMIN", "ROOT")
+
+.requestMatchers(HttpMethod.PUT, "/api/products/**")
+.hasAnyRole("ADMIN", "ROOT")
+
+.requestMatchers(HttpMethod.DELETE, "/api/products/**")
+.hasAnyRole("ADMIN", "ROOT")
+
+// User
+.requestMatchers("/api/user/**")
+.hasAnyRole("USER", "ADMIN", "ROOT")
 
                     .anyRequest().authenticated()
             );

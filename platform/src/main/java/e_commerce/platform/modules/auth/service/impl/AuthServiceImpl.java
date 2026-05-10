@@ -107,6 +107,7 @@ public UserResponse register(RegisterRequest request) {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .role(user.getRole().name())
+                .user(AuthMapper.toUserResponse(user))
                 .build();
     }
 
@@ -135,6 +136,7 @@ public UserResponse register(RegisterRequest request) {
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .role(user.getRole().name())
+                .user(AuthMapper.toUserResponse(user))
                 .build();
     }
 

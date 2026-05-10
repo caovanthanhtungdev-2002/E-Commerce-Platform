@@ -19,12 +19,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  // ✅ Categories: public, luôn load dù chưa đăng nhập
+  //Categories: public, luôn load dù chưa đăng nhập
   useEffect(() => {
     fetchCategories(0);
   }, []);
 
-  // ✅ Cart: chỉ fetch khi đã đăng nhập
+  //Cart: chỉ fetch khi đã đăng nhập
   useEffect(() => {
     if (user) fetchCart();
   }, [user]);
@@ -48,7 +48,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");  // ✅ Shopee logic: logout → về trang chủ, không về login
+    navigate("/");  
   };
 
   return (
@@ -184,7 +184,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <div className={styles.footerInner}>
           <div className={styles.footerCol}>
             <h4>Về chúng tôi</h4>
-            <p>Hệ thống bán lẻ điện thoại & phụ kiện uy tín hàng đầu Việt Nam.</p>
+            <p>Hệ thống thiết bị điện tử uy tín hàng đầu Việt Nam.</p>
           </div>
           <div className={styles.footerCol}>
             <h4>Chính sách</h4>
@@ -194,12 +194,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
           <div className={styles.footerCol}>
             <h4>Hỗ trợ</h4>
-            <a href="#">Hotline: 1800 2097</a>
-            <a href="#">Email: cskh@tgdd.vn</a>
+            <a href="#">Hotline: 0932569302</a>
+            <a href="#">Email: caovanthanhtung.dev@gmail.com</a>
           </div>
         </div>
         <div className={styles.footerBottom}>
-          © 2025 Thế Giới Di Động. All rights reserved.
+          © 2026 Thế Giới Di Động. All rights reserved.
         </div>
       </footer>
     </div>

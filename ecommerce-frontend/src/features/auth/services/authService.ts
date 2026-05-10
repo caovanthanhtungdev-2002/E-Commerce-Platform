@@ -17,6 +17,7 @@ login: async (data: LoginRequest) => {
   const {
     accessToken,
     refreshToken,
+    role,
     user,
   } = res.data.data;
 
@@ -27,6 +28,7 @@ login: async (data: LoginRequest) => {
   return {
     accessToken,
     refreshToken,
+    role,
     user,
   };
 },
