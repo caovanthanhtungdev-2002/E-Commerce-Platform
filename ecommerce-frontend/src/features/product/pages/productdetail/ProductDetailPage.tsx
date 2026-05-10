@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { productService } from "@/features/product/services/productService";
 import { useCartStore } from "@/features/cart/store/cartStore";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
 import { useToast } from "@/components/Toast";
@@ -11,12 +12,14 @@ import styles from "./ProductDetailPage.module.css";
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addingCart, setAddingCart] = useState(false);
 
   const { addToCart } = useCartStore();
+  const { user } = useAuthStore();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -30,6 +33,13 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!product) return;
+
+    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang này
+    if (!user) {
+      navigate(`/login?next=${location.pathname}`);
+      return;
+    }
+
     setAddingCart(true);
     try {
       await addToCart(product.id, quantity);
@@ -42,20 +52,26 @@ export default function ProductDetailPage() {
   };
 
   const handleBuyNow = () => {
-  if (!product) return;
+    if (!product) return;
 
-  navigate("/checkout", {
-    state: {
-      buyNowItem: {
-        productId: product.id,
-        productName: product.name,
-        imageUrl: product.imageUrl,
-        quantity,
-        price: product.price,
+    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang này
+    if (!user) {
+      navigate(`/login?next=${location.pathname}`);
+      return;
+    }
+
+    navigate("/checkout", {
+      state: {
+        buyNowItem: {
+          productId: product.id,
+          productName: product.name,
+          imageUrl: product.imageUrl,
+          quantity,
+          price: product.price,
+        },
       },
-    },
-  });
-};
+    });
+  };
 
   if (loading) return (
     <div className={styles.loadingWrap}>
@@ -213,3 +229,4 @@ export default function ProductDetailPage() {
     </div>
   );
 }
+                      

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useProductStore } from "@/features/product/store/productStore";
 import { useCategoryStore } from "@/features/category/store/categoryStore";
 import { useCartStore } from "@/features/cart/store/cartStore";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
 import { useToast } from "@/components/Toast";
@@ -10,9 +11,11 @@ import styles from "./HomePage.module.css";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { products, fetchProducts } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { addToCart } = useCartStore();
+  const { user } = useAuthStore();
   const { showToast } = useToast();
 
   const [flashIndex, setFlashIndex] = useState(0);
@@ -41,6 +44,13 @@ export default function HomePage() {
   const handleAddToCart = async (e: React.MouseEvent, productId: number, productName: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang chủ
+    if (!user) {
+      navigate(`/login?next=${location.pathname}`);
+      return;
+    }
+
     setAddingId(productId);
     try {
       await addToCart(productId, 1);
@@ -51,22 +61,26 @@ export default function HomePage() {
       setAddingId(null);
     }
   };
-  const handleBuyNow = async (
-  e: React.MouseEvent,
-  productId: number
-) => {
-  e.preventDefault();
-  e.stopPropagation();
 
-  navigate("/checkout", {
-    state: {
-      buyNowItem: {
-        productId,
-        quantity: 1,
+  const handleBuyNow = async (e: React.MouseEvent, productId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // ✅ Shopee logic: chưa login → redirect về login
+    if (!user) {
+      navigate(`/login?next=${location.pathname}`);
+      return;
+    }
+
+    navigate("/checkout", {
+      state: {
+        buyNowItem: {
+          productId,
+          quantity: 1,
+        },
       },
-    },
-  });
-};
+    });
+  };
 
   const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -76,7 +90,6 @@ export default function HomePage() {
     { bg: "linear-gradient(135deg, #1d6348 0%, #0d4d37 50%, #083828 100%)", title: "💻 Laptop Gaming", sub: "Cấu hình khủng - Giá cực tốt", cta: "Xem ngay" },
   ];
 
-  const featuredProducts = products.slice(0, 10);
   const flashSaleProducts = products.slice(0, 6);
   const newProducts = products.slice(0, 8);
 

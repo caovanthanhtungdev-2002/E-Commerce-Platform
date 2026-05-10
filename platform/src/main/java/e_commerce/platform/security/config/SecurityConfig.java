@@ -24,72 +24,72 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+
     @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-    http
-        .cors(cors -> {})
-        .csrf(csrf -> csrf.disable())
+        http
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
 
-        .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler)
-        )
+            .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint(authenticationEntryPoint)
+                    .accessDeniedHandler(accessDeniedHandler)
+            )
 
-        .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        )
+            .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
 
-        .authorizeHttpRequests(auth -> auth
+            .authorizeHttpRequests(auth -> auth
 
-                // PREFLIGHT 
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    // PREFLIGHT
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                //Public API 
-                .requestMatchers("/api/auth/**").permitAll()
+                    // Public API
+                    .requestMatchers("/api/auth/**").permitAll()
 
-                //ADMIN
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    // Swagger
+                    .requestMatchers(
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/v3/api-docs",
+                        "/swagger-resources/**",
+                        "/webjars/**"
+                    ).permitAll()
 
-                //swagger
-                .requestMatchers(
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/v3/api-docs",
-                    "/swagger-resources/**",
-                    "/webjars/**"
-                ).permitAll()
+                  
+                    .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/cart").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/products/search").permitAll()
 
-                //USER
-                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                    //Admin only
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
 
-                //Public Product
-                .requestMatchers("/api/products/**").permitAll()
+                    //User
+                    .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 
-                // private Product
-                .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+                    .anyRequest().authenticated()
+            );
 
-                .anyRequest().authenticated()
-        );
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
 
-    return http.build();
-}
-
-    //Password encoder
+    // Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    //AuthenticationManager 
+    // AuthenticationManager
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-    
-    
 }

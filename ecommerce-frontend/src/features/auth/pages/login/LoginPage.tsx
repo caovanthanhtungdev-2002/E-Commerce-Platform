@@ -1,69 +1,73 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { Link } from 'react-router-dom';
-
 import styles from './LoginPage.module.css';
-
 
 export default function LoginPage() {
   const { login, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   
+  const next = searchParams.get('next') || '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
- const handle = async (e: any) => {
-  e.preventDefault();
+  const handle = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  try {
-    await login({ email, password });
+    try {
+      await login({ email, password });
 
-    const { accessToken } = useAuthStore.getState();
+      const { accessToken } = useAuthStore.getState();
 
-    if (accessToken) {
-      navigate("/");
+      if (accessToken) {
+       
+        navigate(next, { replace: true });
+      }
+    } catch (err) {
+      // error đã được set trong store
     }
-  } catch (err) {
-  }
-};
+  };
 
- return (
-  <div className={styles.container}>
-    <form onSubmit={handle} className={styles.card}>
-      <h2 className={styles.title}>Welcome Back</h2>
+  return (
+    <div className={styles.container}>
+      <form onSubmit={handle} className={styles.card}>
+        <h2 className={styles.title}>Welcome Back</h2>
 
-      {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error}>{error}</p>}
 
-      <input
-        className={styles.input}
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          className={styles.input}
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <input
-        className={styles.input}
-        type="password"
-        placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <input
+          className={styles.input}
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      <button className={styles.button} disabled={isLoading}>
-        {isLoading ? 'Loading...' : 'Login'}
-      </button>
+        <button className={styles.button} disabled={isLoading}>
+          {isLoading ? 'Loading...' : 'Login'}
+        </button>
 
-      <Link to="/forgot-password" className={styles.link}>
-  Forgot password?
-</Link>
+        <Link to="/forgot-password" className={styles.link}>
+          Forgot password?
+        </Link>
 
-      <p className={styles.footer}>
-        Chưa có tài khoản?{' '}
-        <Link to="/register" className={styles.linkStrong}>
-  Đăng ký
-</Link>
-      </p>
-    </form>
-  </div>
-);
+        <p className={styles.footer}>
+          Chưa có tài khoản?{' '}
+          <Link to="/register" className={styles.linkStrong}>
+            Đăng ký
+          </Link>
+        </p>
+      </form>
+    </div>
+  );
 }

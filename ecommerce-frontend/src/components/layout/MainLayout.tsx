@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useCartStore } from "@/features/cart/store/cartStore";
 import { useCategoryStore } from "@/features/category/store/categoryStore";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import styles from "./MainLayout.module.css";
-import { useSearchParams } from "react-router-dom";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [searchParams] = useSearchParams();
@@ -12,20 +11,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const location = useLocation();
   const [keyword, setKeyword] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const { items, fetchCart } = useCartStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { user, logout } = useAuthStore();
-  console.log("CURRENT USER =", user);
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
+  // ✅ Categories: public, luôn load dù chưa đăng nhập
   useEffect(() => {
-    fetchCart();
     fetchCategories(0);
   }, []);
+
+  // ✅ Cart: chỉ fetch khi đã đăng nhập
+  useEffect(() => {
+    if (user) fetchCart();
+  }, [user]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -45,9 +47,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   };
 
   const handleLogout = async () => {
-  await logout();
-  navigate("/login");
-};
+    await logout();
+    navigate("/");  // ✅ Shopee logic: logout → về trang chủ, không về login
+  };
 
   return (
     <div className={styles.layout}>
@@ -91,16 +93,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
-             <span>
-  {user
-    ? (
-        user.fullName ||
-        user.username ||
-        user.email
-      )?.split(" ").pop()
-    : "Đăng nhập"}
-</span>
+                <span>
+                  {user
+                    ? (user.fullName || user.username || user.email)?.split(" ").pop()
+                    : "Đăng nhập"}
+                </span>
               </button>
+
               {showUserMenu && (
                 <div className={styles.userMenu}>
                   {user ? (
@@ -148,22 +147,25 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {/* CATEGORY NAV */}
         <nav className={styles.categoryNav}>
           <div className={styles.categoryNavInner}>
-           <Link
-  to="/products"
-  className={`${styles.navItem} ${
-    location.pathname === "/products" &&
-    !searchParams.get("categoryId")
-      ? styles.navItemActive
-      : ""
-  }`}
->
-            Tất cả sản phẩm
+            <Link
+              to="/products"
+              className={`${styles.navItem} ${
+                location.pathname === "/products" && !searchParams.get("categoryId")
+                  ? styles.navItemActive
+                  : ""
+              }`}
+            >
+              Tất cả sản phẩm
             </Link>
             {categories.slice(0, 8).map((cat) => (
               <Link
                 key={cat.id}
                 to={`/products?categoryId=${cat.id}&categoryName=${encodeURIComponent(cat.name)}`}
-                className={`${styles.navItem} ${new URLSearchParams(location.search).get("categoryId") === String(cat.id) ? styles.navItemActive : ""}`}
+                className={`${styles.navItem} ${
+                  new URLSearchParams(location.search).get("categoryId") === String(cat.id)
+                    ? styles.navItemActive
+                    : ""
+                }`}
               >
                 {cat.name}
               </Link>
