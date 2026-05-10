@@ -43,15 +43,35 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
+        List<CartItemResponse> selectedItems;
+
+    //Luồng Buy Now: dùng buyNowItems, không cần cart
+    boolean isBuyNow = request.getBuyNowItems() != null 
+                    && !request.getBuyNowItems().isEmpty();
+
+    if (isBuyNow) {
+        selectedItems = request.getBuyNowItems().stream().map(item -> {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            return CartItemResponse.builder()
+                    .productId(product.getId())
+                    .productName(product.getName())
+                    .price(product.getPrice())
+                    .quantity(item.getQuantity())
+                    .imageUrl(product.getImageUrl())
+                    .build();
+        }).toList();
+    } else {
+        // Luồng Cart bình thường
         CartResponse cart = cartService.getCart(username);
 
         if (cart.getItems().isEmpty()) {
             throw new BadRequestException("Cart is empty");
         }
 
-        // Chỉ lấy các item được chọn
-        List<CartItemResponse> selectedItems;
-        if (request.getSelectedProductIds() != null && !request.getSelectedProductIds().isEmpty()) {
+        if (request.getSelectedProductIds() != null 
+                && !request.getSelectedProductIds().isEmpty()) {
             selectedItems = cart.getItems().stream()
                     .filter(i -> request.getSelectedProductIds().contains(i.getProductId()))
                     .toList();
@@ -62,6 +82,7 @@ public class OrderServiceImpl implements OrderService {
         if (selectedItems.isEmpty()) {
             throw new BadRequestException("No selected items");
         }
+    }
 
         // Tính tổng tiền chỉ từ item được chọn
         double totalPrice = selectedItems.stream()
@@ -134,13 +155,13 @@ public class OrderServiceImpl implements OrderService {
                         .build()
         ));
 
-        // ✅ COD → xóa cart ngay vì đã thanh toán xong
-        // ✅ VNPAY → GIỮ LẠI cart, chỉ xóa sau khi payment callback thành công
-        if ("COD".equals(request.getPaymentMethod())) {
-            request.getSelectedProductIds().forEach(productId ->
-                    cartService.removeFromCart(username, productId)
-            );
-        }
+        // COD → xóa cart ngay vì đã thanh toán xong
+        // VNPAY → GIỮ LẠI cart, chỉ xóa sau khi payment callback thành công
+        if (!isBuyNow && "COD".equals(request.getPaymentMethod())) {
+        request.getSelectedProductIds().forEach(productId ->
+                cartService.removeFromCart(username, productId)
+        );
+    }
 
         return OrderMapper.toResponse(order);
     }

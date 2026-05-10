@@ -5,7 +5,10 @@ export interface OrderItem {
   price: number;
   quantity: number;
 }
-
+export interface BuyNowItem {
+  productId: number;
+  quantity: number;
+}
 export interface Order {
   id: number;
   totalPrice: number;
@@ -27,4 +30,5 @@ export interface CreateOrderRequest {
   phone: string;
   address: string;
   selectedProductIds: number[];
+  buyNowItems?: BuyNowItem[];
 }

@@ -1,7 +1,8 @@
 package e_commerce.platform.modules.order.dto.request;
 
-import lombok.Data;
 import java.util.List;
+
+import lombok.Data;
 
 
 @Data
@@ -16,6 +17,13 @@ public class CreateOrderRequest {
     private String paymentMethod;
 
     private List<Long> selectedProductIds;
-                                                                                                                        
+
+    private List<BuyNowItem> buyNowItems;
+                   
+    @Data
+    public static class BuyNowItem {
+        private Long productId;
+        private Integer quantity;
+    }
     
 }

@@ -115,7 +115,14 @@ export default function CheckoutPage() {
         phone: phone.trim(),
         address: address.trim(),
         selectedProductIds,
-      });
+      //truyền buyNowItems
+    ...(buyNowItem && {
+      buyNowItems: [{
+        productId: buyNowItem.productId,
+        quantity: buyNowItem.quantity,
+      }],
+    }),
+  });
 
       const order = useOrderStore.getState().currentOrder;
       if (!order) return;
