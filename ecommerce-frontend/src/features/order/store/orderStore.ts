@@ -1,14 +1,7 @@
 import { create } from "zustand";
-
-import * as orderService
-  from "../services/orderService";
-
-import type { Order, CreateOrderRequest }
-  from "../types/orderTypes";
-
-// ========================================
-// STATE
-// ========================================
+import * as orderService from "../services/orderService";
+import type { Order, CreateOrderRequest } from "../types/orderTypes";
+import { useCartStore } from "@/features/cart/store/cartStore"; 
 
 interface OrderState {
   currentOrder: Order | null;
@@ -21,107 +14,57 @@ interface OrderState {
   fetchOrders: () => Promise<void>;
 }
 
-// ========================================
-// STORE
-// ========================================
+export const useOrderStore = create<OrderState>((set) => ({
 
-export const useOrderStore =
-  create<OrderState>((set) => ({
+  currentOrder: null,
+  orders: [],
+  loading: false,
+  error: null,
 
-    currentOrder: null,
-    orders: [],
-    loading: false,
-    error: null,
+  create: async (payload) => {
+    try {
+      set({ loading: true, error: null });
 
-    // =====================================
-    // CREATE ORDER
-    // =====================================
+      const order = await orderService.createOrder(payload);
 
-    create: async (payload) => {
+      set({ currentOrder: order, loading: false });
 
-      try {
+      //Fetch lại giỏ hàng sau khi đặt hàng thành công (cả COD lẫn VNPAY)
+      await useCartStore.getState().fetchCart();
 
-        set({ loading: true, error: null });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || "Create order failed",
+        loading: false,
+      });
+      throw err;
+    }
+  },
 
-        const order =
-          await orderService.createOrder(payload);
+  fetchOrder: async (id) => {
+    try {
+      set({ loading: true, error: null });
+      const order = await orderService.getOrder(id);
+      set({ currentOrder: order, loading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || "Fetch order failed",
+        loading: false,
+      });
+    }
+  },
 
-        set({
-          currentOrder: order,
-          loading: false,
-        });
+  fetchOrders: async () => {
+    try {
+      set({ loading: true, error: null });
+      const orders = await orderService.fetchOrders();
+      set({ orders, loading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || "Fetch orders failed",
+        loading: false,
+      });
+    }
+  },
 
-      } catch (err: any) {
-
-        set({
-          error:
-            err?.response?.data?.message ||
-            "Create order failed",
-          loading: false,
-        });
-
-        throw err;
-      }
-    },
-
-    // =====================================
-    // FETCH ONE
-    // =====================================
-
-    fetchOrder: async (id) => {
-
-      try {
-
-        set({ loading: true, error: null });
-
-        const order =
-          await orderService.getOrder(id);
-
-        set({
-          currentOrder: order,
-          loading: false,
-        });
-
-      } catch (err: any) {
-
-        set({
-          error:
-            err?.response?.data?.message ||
-            "Fetch order failed",
-          loading: false,
-        });
-
-      }
-    },
-
-    // =====================================
-    // FETCH ALL
-    // =====================================
-
-    fetchOrders: async () => {
-
-      try {
-
-        set({ loading: true, error: null });
-
-        const orders =
-          await orderService.fetchOrders();
-
-        set({
-          orders,
-          loading: false,
-        });
-
-      } catch (err: any) {
-
-        set({
-          error:
-            err?.response?.data?.message ||
-            "Fetch orders failed",
-          loading: false,
-        });
-
-      }
-    },
-
-  }));
+}));

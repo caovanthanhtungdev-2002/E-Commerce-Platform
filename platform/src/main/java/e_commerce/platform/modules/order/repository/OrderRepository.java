@@ -97,4 +97,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findAll(Pageable pageable);
 
     List<Order> findByUsername(String username);
+
+    List<Order> findByStatusAndPaidAtBefore(
+        OrderStatus status,
+        LocalDateTime time
+    );
+    
+    @Modifying
+@Query("""
+    UPDATE Order o SET o.status = :newStatus
+    WHERE o.status = :status
+    AND o.paidAt < :cutoff
+""")
+int confirmPaidOrders(
+    @Param("status")    OrderStatus status,
+    @Param("cutoff")    LocalDateTime cutoff,
+    @Param("newStatus") OrderStatus newStatus
+);
 }

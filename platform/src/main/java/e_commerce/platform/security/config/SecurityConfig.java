@@ -45,6 +45,9 @@ public class SecurityConfig {
 
                     // PREFLIGHT
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    
+                    //WebSocket
+                    .requestMatchers("/ws/**").permitAll()
 
                     // Public API
                     .requestMatchers("/api/auth/**").permitAll()

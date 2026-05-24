@@ -11,20 +11,24 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const location = useLocation();
   const [keyword, setKeyword] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [hoveredCatId, setHoveredCatId] = useState<number | null>(null);
+  // ← MỚI: track subcategory đang hover để hiện panel cấp 3
+  const [hoveredSubId, setHoveredSubId] = useState<number | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const subHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { items, fetchCart } = useCartStore();
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, tree, fetchCategories, fetchTree } = useCategoryStore();
   const { user, logout } = useAuthStore();
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  //Categories: public, luôn load dù chưa đăng nhập
   useEffect(() => {
     fetchCategories(0);
+    fetchTree();
   }, []);
 
-  //Cart: chỉ fetch khi đã đăng nhập
   useEffect(() => {
     if (user) fetchCart();
   }, [user]);
@@ -48,8 +52,55 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");  
+    navigate("/");
   };
+
+  // --- Hover handlers cấp 1 (nav item → mở mega menu) ---
+  const handleNavMouseEnter = (catId: number) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setHoveredCatId(catId);
+    setHoveredSubId(null); // reset sub khi chuyển cat
+  };
+
+  const handleNavMouseLeave = () => {
+    hoverTimer.current = setTimeout(() => {
+      setHoveredCatId(null);
+      setHoveredSubId(null);
+    }, 150);
+  };
+
+  const handleMegaMouseEnter = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+  };
+
+  const handleMegaMouseLeave = () => {
+    hoverTimer.current = setTimeout(() => {
+      setHoveredCatId(null);
+      setHoveredSubId(null);
+    }, 150);
+  };
+
+  // --- Hover handlers cấp 2 (sub item → mở panel cấp 3) ---
+  const handleSubMouseEnter = (subId: number) => {
+    if (subHoverTimer.current) clearTimeout(subHoverTimer.current);
+    setHoveredSubId(subId);
+  };
+
+  const handleSubMouseLeave = () => {
+    // Không đóng ngay — để user di chuột sang panel cấp 3
+    subHoverTimer.current = setTimeout(() => setHoveredSubId(null), 100);
+  };
+
+  const handleLevel3PanelMouseEnter = () => {
+    if (subHoverTimer.current) clearTimeout(subHoverTimer.current);
+  };
+
+  const handleLevel3PanelMouseLeave = () => {
+    subHoverTimer.current = setTimeout(() => setHoveredSubId(null), 100);
+  };
+
+  const hoveredCat = tree.find((c) => c.id === hoveredCatId);
+  const hoveredSub = hoveredCat?.children?.find((s) => s.id === hoveredSubId);
 
   return (
     <div className={styles.layout}>
@@ -63,7 +114,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <div className={styles.headerInner}>
           {/* LOGO */}
           <Link to="/" className={styles.logo}>
-            <img src="/logo.png" alt="TheGioiDiDong" onError={(e) => {
+            <img src="/logo.png" alt="TGBNY" onError={(e) => {
               e.currentTarget.style.display = "none";
               (e.currentTarget.nextSibling as HTMLElement).style.display = "block";
             }} />
@@ -87,7 +138,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
           {/* ACTIONS */}
           <div className={styles.actions}>
-            {/* USER */}
             <div className={styles.actionItem} ref={userMenuRef}>
               <button className={styles.actionBtn} onClick={() => setShowUserMenu(!showUserMenu)}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -104,31 +154,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <div className={styles.userMenu}>
                   {user ? (
                     <>
-                      <Link to="/profile" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
-                        👤 Tài khoản của tôi
-                      </Link>
-                      <Link to="/orders" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
-                        📦 Lịch sử đơn hàng
-                      </Link>
-                      <button className={styles.menuItemDanger} onClick={handleLogout}>
-                        🚪 Đăng xuất
-                      </button>
+                      <Link to="/profile" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>👤 Tài khoản của tôi</Link>
+                      <Link to="/orders" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>📦 Lịch sử đơn hàng</Link>
+                      <button className={styles.menuItemDanger} onClick={handleLogout}>🚪 Đăng xuất</button>
                     </>
                   ) : (
                     <>
-                      <Link to="/login" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
-                        🔑 Đăng nhập
-                      </Link>
-                      <Link to="/register" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
-                        📝 Đăng ký
-                      </Link>
+                      <Link to="/login" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>🔑 Đăng nhập</Link>
+                      <Link to="/register" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>📝 Đăng ký</Link>
                     </>
                   )}
                 </div>
               )}
             </div>
 
-            {/* CART */}
             <Link to="/cart" className={styles.cartBtn}>
               <div className={styles.cartIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -151,26 +190,153 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               to="/products"
               className={`${styles.navItem} ${
                 location.pathname === "/products" && !searchParams.get("categoryId")
-                  ? styles.navItemActive
-                  : ""
+                  ? styles.navItemActive : ""
               }`}
             >
               Tất cả sản phẩm
             </Link>
-            {categories.slice(0, 8).map((cat) => (
-              <Link
+
+            {tree.map((cat) => (
+              <div
                 key={cat.id}
-                to={`/products?categoryId=${cat.id}&categoryName=${encodeURIComponent(cat.name)}`}
-                className={`${styles.navItem} ${
-                  new URLSearchParams(location.search).get("categoryId") === String(cat.id)
-                    ? styles.navItemActive
-                    : ""
-                }`}
+                className={styles.navItemWrap}
+                onMouseEnter={() => handleNavMouseEnter(cat.id)}
+                onMouseLeave={handleNavMouseLeave}
               >
-                {cat.name}
-              </Link>
+                <Link
+                  to={`/products?categoryId=${cat.id}&categoryName=${encodeURIComponent(cat.name)}`}
+                  className={`${styles.navItem} ${
+                    searchParams.get("categoryId") === String(cat.id) ? styles.navItemActive : ""
+                  }`}
+                >
+                  {cat.name}
+                  {cat.children && cat.children.length > 0 && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" style={{ marginLeft: 4 }}>
+                      <path d="M2 3l3 4 3-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                    </svg>
+                  )}
+                </Link>
+              </div>
             ))}
           </div>
+
+          {/* ============ MEGA MENU 3 CẤP ============ */}
+          {hoveredCat && hoveredCat.children && hoveredCat.children.length > 0 && (
+            <div
+              className={styles.megaMenu}
+              onMouseEnter={handleMegaMouseEnter}
+              onMouseLeave={handleMegaMouseLeave}
+            >
+              <div className={styles.megaMenuInner}>
+
+                {/* Header */}
+                <div className={styles.megaHeader}>
+                  <Link
+                    to={`/products?categoryId=${hoveredCat.id}&categoryName=${encodeURIComponent(hoveredCat.name)}`}
+                    className={styles.megaHeaderLink}
+                    onClick={() => { setHoveredCatId(null); setHoveredSubId(null); }}
+                  >
+                    {hoveredCat.name}
+                    <span className={styles.megaHeaderArrow}>Xem tất cả →</span>
+                  </Link>
+                </div>
+
+                {/* Body: cột trái (sub) + cột phải (sub-sub) */}
+                <div className={styles.megaBody}>
+
+                  {/* CỘT TRÁI: danh sách subcategory cấp 2 */}
+                  <div className={styles.megaSubList}>
+                    {hoveredCat.children.map((sub) => {
+                      const hasChildren = sub.children && sub.children.length > 0;
+                      const isActive = hoveredSubId === sub.id;
+                      return (
+                        <div
+                          key={sub.id}
+                          className={`${styles.megaSubItem} ${isActive ? styles.megaSubItemActive : ""}`}
+                          onMouseEnter={() => hasChildren ? handleSubMouseEnter(sub.id) : setHoveredSubId(null)}
+                          onMouseLeave={hasChildren ? handleSubMouseLeave : undefined}
+                        >
+                          <Link
+                            to={`/products?categoryId=${sub.id}&categoryName=${encodeURIComponent(sub.name)}`}
+                            className={styles.megaSubLink}
+                            onClick={() => { setHoveredCatId(null); setHoveredSubId(null); }}
+                          >
+                            <div className={styles.megaSubIcon}>
+                              {sub.name.includes("Gaming") ? "🎮" :
+                               sub.name.includes("Văn phòng") ? "💼" :
+                               sub.name.includes("AI") ? "🤖" :
+                               sub.name.includes("Hãng") ? "🏷️" :
+                               sub.name.includes("Phụ kiện") ? "🔧" :
+                               sub.name.includes("Điện thoại") ? "📱" :
+                               sub.name.includes("Màn hình") ? "🖥️" :
+                               sub.name.includes("Bàn phím") ? "⌨️" :
+                               sub.name.includes("Chuột") ? "🖱️" :
+                               sub.name.includes("Tai nghe") ? "🎧" : "📦"}
+                            </div>
+                            <div className={styles.megaSubText}>
+                              <span className={styles.megaSubName}>{sub.name}</span>
+                              {sub.description && (
+                                <span className={styles.megaSubDesc}>{sub.description}</span>
+                              )}
+                            </div>
+                            {/* Mũi tên chỉ hiện nếu có con */}
+                            {hasChildren && (
+                              <svg
+                                className={styles.megaSubArrow}
+                                width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" strokeWidth="2"
+                              >
+                                <path d="M9 18l6-6-6-6"/>
+                              </svg>
+                            )}
+                          </Link>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* CỘT PHẢI: sub-sub (cấp 3) — chỉ hiện khi hover vào sub có children */}
+                  {hoveredSub && hoveredSub.children && hoveredSub.children.length > 0 && (
+                    <div
+                      className={styles.megaLevel3Panel}
+                      onMouseEnter={handleLevel3PanelMouseEnter}
+                      onMouseLeave={handleLevel3PanelMouseLeave}
+                    >
+                      {/* Header cấp 3 */}
+                      <div className={styles.megaLevel3Header}>
+                        <Link
+                          to={`/products?categoryId=${hoveredSub.id}&categoryName=${encodeURIComponent(hoveredSub.name)}`}
+                          className={styles.megaLevel3HeaderLink}
+                          onClick={() => { setHoveredCatId(null); setHoveredSubId(null); }}
+                        >
+                          {hoveredSub.name}
+                          <span className={styles.megaLevel3HeaderArrow}>Xem tất cả →</span>
+                        </Link>
+                      </div>
+
+                      {/* Grid các sub-sub */}
+                      <div className={styles.megaLevel3Grid}>
+                        {hoveredSub.children.map((subSub) => (
+                          <Link
+                            key={subSub.id}
+                            to={`/products?categoryId=${subSub.id}&categoryName=${encodeURIComponent(subSub.name)}`}
+                            className={styles.megaLevel3Item}
+                            onClick={() => { setHoveredCatId(null); setHoveredSubId(null); }}
+                          >
+                            <span className={styles.megaLevel3Name}>{subSub.name}</span>
+                            {subSub.description && (
+                              <span className={styles.megaLevel3Desc}>{subSub.description}</span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
         </nav>
       </header>
 

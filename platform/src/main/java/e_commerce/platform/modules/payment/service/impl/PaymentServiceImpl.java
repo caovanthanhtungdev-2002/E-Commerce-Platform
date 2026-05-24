@@ -140,6 +140,7 @@ public CreatePaymentResponse createPayment(Long orderId) {
             payment.setStatus(PaymentStatus.SUCCESS);
             payment.setTransactionId(transactionId);
             order.setStatus(OrderStatus.PAID);
+            order.setPaidAt(LocalDateTime.now());
 
             // Confirm inventory (trừ stock thật sự)
             order.getItems().forEach(item ->

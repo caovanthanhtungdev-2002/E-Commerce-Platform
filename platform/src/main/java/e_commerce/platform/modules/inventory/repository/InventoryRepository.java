@@ -18,6 +18,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByProductId(@Param("productId") Long productId);
 
     
-    @Query("SELECT i FROM Inventory i WHERE i.stock < :threshold")
-    List<Inventory> findByStockLessThan(@Param("threshold") int threshold);
+    @Query("SELECT i FROM Inventory i JOIN FETCH i.product WHERE (i.stock - i.reserved) < :threshold")
+List<Inventory> findByStockLessThan(@Param("threshold") int threshold);
+
+    @Query("SELECT i FROM Inventory i JOIN FETCH i.product")
+List<Inventory> findAllWithProduct();
+
+@Query("SELECT i FROM Inventory i JOIN FETCH i.product WHERE (i.stock - i.reserved) < :threshold")
+List<Inventory> findByAvailableLessThan(@Param("threshold") int threshold);
 }

@@ -1,15 +1,12 @@
 package e_commerce.platform.admin.service.impl;
 
 import e_commerce.platform.admin.service.AdminInventoryService;
-
+import e_commerce.platform.exception.BadRequestException;
+import e_commerce.platform.exception.ResourceNotFoundException;
+import e_commerce.platform.modules.inventory.dto.InventoryDTO;
 import e_commerce.platform.modules.inventory.entity.Inventory;
 import e_commerce.platform.modules.inventory.repository.InventoryRepository;
-
-import e_commerce.platform.exception.ResourceNotFoundException;
-import e_commerce.platform.exception.BadRequestException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,96 +18,73 @@ import java.util.List;
 public class AdminInventoryServiceImpl implements AdminInventoryService {
 
     private final InventoryRepository inventoryRepository;
-
     private static final int LOW_STOCK_THRESHOLD = 10;
 
-    // ================= GET BY PRODUCT ID =================
-    @Override
-    public Inventory getInventoryByProductId(Long productId) {
+    private InventoryDTO toDTO(Inventory inv) {
+        return InventoryDTO.builder()
+            .productId(inv.getProductId())
+            .productName(inv.getProduct().getName())
+            .imageUrl(inv.getProduct().getImageUrl())
+            .stock(inv.getStock())
+            .reserved(inv.getReserved())
+            .sold(inv.getSold())
+            .build();
+    }
 
-        if (productId == null) {
-            throw new BadRequestException("Product ID is required");
-        }
-
+    private Inventory findById(Long productId) {
+        if (productId == null) throw new BadRequestException("Product ID is required");
         return inventoryRepository.findByProductId(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Inventory not found for product id: " + productId));
+            .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product id: " + productId));
     }
 
-    // ================= GET ALL =================
     @Override
-    public List<Inventory> getAllInventories() {
-        return inventoryRepository.findAll();
+    public InventoryDTO getInventoryByProductId(Long productId) {
+        return toDTO(findById(productId));
     }
 
-    // ================= LOW STOCK =================
     @Override
-    public List<Inventory> getLowStockProducts() {
-        // query thẳng DB thay vì load toàn bộ rồi filter trong memory
-        return inventoryRepository.findByStockLessThan(LOW_STOCK_THRESHOLD);
+    public List<InventoryDTO> getAllInventories() {
+        return inventoryRepository.findAllWithProduct()
+            .stream()
+            .map(this::toDTO)
+            .toList();
     }
 
-    // ================= INCREASE STOCK =================
+    @Override
+    public List<InventoryDTO> getLowStockProducts() {
+        return inventoryRepository.findByStockLessThan(LOW_STOCK_THRESHOLD)
+            .stream()
+            .map(this::toDTO)
+            .toList();
+    }
+
     @Override
     public void increaseStock(Long productId, int amount) {
-
-        if (amount <= 0) {
-            throw new BadRequestException("Amount must be greater than 0");
-        }
-
-        Inventory inventory = getInventoryByProductId(productId);
-
-        int current = inventory.getStock() != null ? inventory.getStock() : 0;
-        inventory.setStock(current + amount);
-        inventoryRepository.save(inventory);
+        if (amount <= 0) throw new BadRequestException("Amount must be greater than 0");
+        Inventory inv = findById(productId);
+        inv.setStock((inv.getStock() != null ? inv.getStock() : 0) + amount);
+        inventoryRepository.save(inv);
     }
 
-    // ================= DECREASE STOCK =================
     @Override
     public void decreaseStock(Long productId, int amount) {
-
-        if (amount <= 0) {
-            throw new BadRequestException("Amount must be greater than 0");
-        }
-
-        Inventory inventory = getInventoryByProductId(productId);
-
-        int current = inventory.getStock() != null ? inventory.getStock() : 0;
-
-        if (current < amount) {
-            throw new BadRequestException(
-                    "Not enough stock. Current: " + current + ", requested: " + amount);
-        }
-
-        // kiểm tra không được giảm xuống dưới số lượng đang reserved
-        int reserved = inventory.getReserved() != null ? inventory.getReserved() : 0;
-        if ((current - amount) < reserved) {
-            throw new BadRequestException(
-                    "Cannot decrease below reserved quantity: " + reserved);
-        }
-
-        inventory.setStock(current - amount);
-        inventoryRepository.save(inventory);
+        if (amount <= 0) throw new BadRequestException("Amount must be greater than 0");
+        Inventory inv = findById(productId);
+        int current  = inv.getStock()    != null ? inv.getStock()    : 0;
+        int reserved = inv.getReserved() != null ? inv.getReserved() : 0;
+        if (current < amount) throw new BadRequestException("Not enough stock. Current: " + current + ", requested: " + amount);
+        if ((current - amount) < reserved) throw new BadRequestException("Cannot decrease below reserved quantity: " + reserved);
+        inv.setStock(current - amount);
+        inventoryRepository.save(inv);
     }
 
-    // ================= SET STOCK =================
     @Override
     public void setStock(Long productId, int quantity) {
-
-        if (quantity < 0) {
-            throw new BadRequestException("Stock cannot be negative");
-        }
-
-        Inventory inventory = getInventoryByProductId(productId);
-
-        // kiểm tra không được set thấp hơn reserved
-        int reserved = inventory.getReserved() != null ? inventory.getReserved() : 0;
-        if (quantity < reserved) {
-            throw new BadRequestException(
-                    "Stock cannot be less than reserved quantity: " + reserved);
-        }
-
-        inventory.setStock(quantity);
-        inventoryRepository.save(inventory);
+        if (quantity < 0) throw new BadRequestException("Stock cannot be negative");
+        Inventory inv = findById(productId);
+        int reserved = inv.getReserved() != null ? inv.getReserved() : 0;
+        if (quantity < reserved) throw new BadRequestException("Cannot set stock less than reserved: " + reserved);
+        inv.setStock(quantity);
+        inventoryRepository.save(inv);
     }
 }

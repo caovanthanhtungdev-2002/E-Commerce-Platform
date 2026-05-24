@@ -63,27 +63,35 @@ export default function AdminInventoryPage() {
               <tr><td colSpan={6} className={styles.tdCenter}>Đang tải...</td></tr>
             ) : inventories.length === 0 ? (
               <tr><td colSpan={6} className={styles.tdCenter}>Không có dữ liệu</td></tr>
-            ) : inventories.map((inv) => (
-              <tr key={inv.id}>
-                <td className={styles.tdMuted}>#{inv.id}</td>
-                <td className={styles.tdBold}>{inv.productName || `Product #${inv.productId}`}</td>
-                <td>
-                  <span style={{ fontWeight: 700, color: inv.quantity < 10 ? "#e53935" : "#1a1d2e" }}>
-                    {inv.quantity}
-                  </span>
-                  {inv.quantity < 10 && <span style={{ color: "#e53935", fontSize: "11px", marginLeft: 4 }}>⚠️ Thấp</span>}
-                </td>
-                <td className={styles.tdMuted}>{inv.reserved}</td>
-                <td className={styles.tdMuted}>{inv.available}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <button className={styles.btnEdit} onClick={() => openEdit(inv.id, "increase")}>+ Nhập</button>
-                    <button className={styles.btnToggle} onClick={() => openEdit(inv.id, "decrease")}>- Xuất</button>
-                    <button className={styles.btnDel} onClick={() => openEdit(inv.id, "set")}>Đặt lại</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            ) : inventories.map((inv) => {
+              const available = inv.stock - inv.reserved;
+              const isLow = available < 10;
+              return (
+                <tr key={inv.productId}>
+                  <td className={styles.tdMuted}>#{inv.productId}</td>
+                  <td className={styles.tdBold}>{inv.productName || `Product #${inv.productId}`}</td>
+                  <td>
+                    <span style={{ fontWeight: 700, color: isLow ? "#e53935" : "#1a1d2e" }}>
+                      {inv.stock}
+                    </span>
+                    {isLow && (
+                      <span style={{ color: "#e53935", fontSize: "11px", marginLeft: 4 }}>⚠️ Thấp</span>
+                    )}
+                  </td>
+                  <td className={styles.tdMuted}>{inv.reserved}</td>
+                  <td className={styles.tdMuted} style={{ color: isLow ? "#e53935" : undefined, fontWeight: isLow ? 700 : undefined }}>
+                    {available}
+                  </td>
+                  <td>
+                    <div className={styles.actions}>
+                      <button className={styles.btnEdit}   onClick={() => openEdit(inv.productId, "increase")}>+ Nhập</button>
+                      <button className={styles.btnToggle} onClick={() => openEdit(inv.productId, "decrease")}>- Xuất</button>
+                      <button className={styles.btnDel}    onClick={() => openEdit(inv.productId, "set")}>Đặt lại</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

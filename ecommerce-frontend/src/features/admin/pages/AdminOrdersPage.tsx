@@ -4,10 +4,11 @@ import { formatCurrencyVND } from "@/utils/formatCurrency";
 import type { OrderStatus } from "../types/adminTypes";
 import styles from "./AdminPage.module.css";
 
-const STATUS_OPTIONS: OrderStatus[] = ["PENDING","PAID","PROCESSING","SHIPPED","DELIVERED","CANCELLED","REFUNDED"];
+const STATUS_OPTIONS: OrderStatus[] = ["PENDING","CONFIRMED","PAID","PROCESSING","SHIPPED","DELIVERED","CANCELLED","REFUNDED"];
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING: styles.badgePending,
+  CONFIRMED: styles.badgePaid,
   PAID: styles.badgePaid,
   PROCESSING: styles.badgePaid,
   SHIPPED: styles.badgeShipped,
@@ -17,7 +18,17 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function AdminOrdersPage() {
-  const { orders, loading, fetch, filter, updateStatus, cancel, refund, remove } = useAdminOrderStore();
+  // Dùng selector riêng từng field — tránh conflict với browser globals
+  const orders       = useAdminOrderStore((s) => s.orders);
+  const loading      = useAdminOrderStore((s) => s.loading);
+  const fetchOrders  = useAdminOrderStore((s) => s.fetch);
+  const filterOrders = useAdminOrderStore((s) => s.filter);
+  const updateStatus = useAdminOrderStore((s) => s.updateStatus);
+  const confirmOrder = useAdminOrderStore((s) => s.confirm);
+  const cancelOrder  = useAdminOrderStore((s) => s.cancel);
+  const refundOrder  = useAdminOrderStore((s) => s.refund);
+  const removeOrder  = useAdminOrderStore((s) => s.remove);
+
   const [page, setPage] = useState(0);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
   const [filterUsername, setFilterUsername] = useState("");
@@ -26,39 +37,60 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     if (filterStatus || filterUsername) {
-      filter({ status: filterStatus || undefined, username: filterUsername || undefined });
+      filterOrders({ status: filterStatus || undefined, username: filterUsername || undefined });
     } else {
-      fetch(page);
+      fetchOrders(page);
     }
   }, [page, filterStatus, filterUsername]);
 
   const handleStatusChange = async (id: number, status: OrderStatus) => {
     try {
       await updateStatus(id, status);
-      fetch(page);
-    } catch { alert("Cập nhật thất bại"); }
+      fetchOrders(page);
+    } catch {
+      alert("Cập nhật thất bại");
+    }
   };
+
+  const handleConfirm = async (id: number) => {
+  console.log("confirmOrder type:", typeof confirmOrder);
+  console.log("confirmOrder value:", confirmOrder);
+  try {
+    await confirmOrder(id);
+    fetchOrders(page);
+  } catch (err: any) {
+    alert(err?.response?.data?.message || "Xác nhận thất bại");
+  }
+};
 
   const handleCancel = async () => {
     if (!cancelId || !cancelReason.trim()) return;
     try {
-      await cancel(cancelId, cancelReason);
+      await cancelOrder(cancelId, cancelReason);
       setCancelId(null);
       setCancelReason("");
-      fetch(page);
-    } catch { alert("Hủy đơn thất bại"); }
+      fetchOrders(page);
+    } catch {
+      alert("Hủy đơn thất bại");
+    }
   };
 
   const handleRefund = async (id: number) => {
-    if (!confirm("Xác nhận hoàn tiền đơn này?")) return;
-    try { await refund(id); fetch(page); }
-    catch { alert("Hoàn tiền thất bại"); }
+    try {
+      await refundOrder(id);
+      fetchOrders(page);
+    } catch {
+      alert("Hoàn tiền thất bại");
+    }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Xóa đơn hàng này?")) return;
-    try { await remove(id); fetch(page); }
-    catch { alert("Xóa thất bại"); }
+    try {
+      await removeOrder(id);
+      fetchOrders(page);
+    } catch {
+      alert("Xóa thất bại");
+    }
   };
 
   return (
@@ -130,12 +162,21 @@ export default function AdminOrdersPage() {
                     >
                       {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
+
+                    {o.status === "PENDING" && (
+                      <button className={styles.btnToggle} onClick={() => handleConfirm(o.id)}>
+                        ✅ Xác nhận
+                      </button>
+                    )}
+
                     {["PAID", "DELIVERED"].includes(o.status) && (
                       <button className={styles.btnToggle} onClick={() => handleRefund(o.id)}>↩ Hoàn</button>
                     )}
+
                     {!["CANCELLED", "REFUNDED"].includes(o.status) && (
                       <button className={styles.btnDel} onClick={() => setCancelId(o.id)}>Hủy</button>
                     )}
+
                     <button className={styles.btnDel} onClick={() => handleDelete(o.id)}>Xóa</button>
                   </div>
                 </td>

@@ -18,6 +18,7 @@ import e_commerce.platform.modules.order.event.OrderEvent;
 import e_commerce.platform.modules.order.mapper.OrderMapper;
 import e_commerce.platform.modules.order.producer.OrderProducer;
 import e_commerce.platform.modules.order.repository.OrderRepository;
+import e_commerce.platform.modules.order.service.OrderNotificationService;
 import e_commerce.platform.modules.order.service.OrderService;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
@@ -38,53 +39,54 @@ public class OrderServiceImpl implements OrderService {
     private final CouponService couponService;
     private final ProductRepository productRepository;
     private final InventoryService inventoryService;
+    private final OrderNotificationService orderNotificationService; //
 
+    // =========================================================
+    // TẠO ĐƠN HÀNG
+    // =========================================================
     @Override
     @Transactional
     public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
         List<CartItemResponse> selectedItems;
 
-    //Luồng Buy Now: dùng buyNowItems, không cần cart
-    boolean isBuyNow = request.getBuyNowItems() != null 
-                    && !request.getBuyNowItems().isEmpty();
+        boolean isBuyNow = request.getBuyNowItems() != null
+                && !request.getBuyNowItems().isEmpty();
 
-    if (isBuyNow) {
-        selectedItems = request.getBuyNowItems().stream().map(item -> {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        if (isBuyNow) {
+            selectedItems = request.getBuyNowItems().stream().map(item -> {
+                Product product = productRepository.findById(item.getProductId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-            return CartItemResponse.builder()
-                    .productId(product.getId())
-                    .productName(product.getName())
-                    .price(product.getPrice())
-                    .quantity(item.getQuantity())
-                    .imageUrl(product.getImageUrl())
-                    .build();
-        }).toList();
-    } else {
-        // Luồng Cart bình thường
-        CartResponse cart = cartService.getCart(username);
-
-        if (cart.getItems().isEmpty()) {
-            throw new BadRequestException("Cart is empty");
-        }
-
-        if (request.getSelectedProductIds() != null 
-                && !request.getSelectedProductIds().isEmpty()) {
-            selectedItems = cart.getItems().stream()
-                    .filter(i -> request.getSelectedProductIds().contains(i.getProductId()))
-                    .toList();
+                return CartItemResponse.builder()
+                        .productId(product.getId())
+                        .productName(product.getName())
+                        .price(product.getPrice())
+                        .quantity(item.getQuantity())
+                        .imageUrl(product.getImageUrl())
+                        .build();
+            }).toList();
         } else {
-            selectedItems = cart.getItems();
+            CartResponse cart = cartService.getCart(username);
+
+            if (cart.getItems().isEmpty()) {
+                throw new BadRequestException("Cart is empty");
+            }
+
+            if (request.getSelectedProductIds() != null
+                    && !request.getSelectedProductIds().isEmpty()) {
+                selectedItems = cart.getItems().stream()
+                        .filter(i -> request.getSelectedProductIds().contains(i.getProductId()))
+                        .toList();
+            } else {
+                selectedItems = cart.getItems();
+            }
+
+            if (selectedItems.isEmpty()) {
+                throw new BadRequestException("No selected items");
+            }
         }
 
-        if (selectedItems.isEmpty()) {
-            throw new BadRequestException("No selected items");
-        }
-    }
-
-        // Tính tổng tiền chỉ từ item được chọn
         double totalPrice = selectedItems.stream()
                 .mapToDouble(i -> i.getPrice() * i.getQuantity())
                 .sum();
@@ -104,7 +106,6 @@ public class OrderServiceImpl implements OrderService {
 
         double finalPrice = Math.max(0, totalPrice - discount);
 
-        // Map từ selectedItems
         List<OrderItem> items = selectedItems.stream().map(i -> {
             Product product = productRepository.findById(i.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -118,15 +119,10 @@ public class OrderServiceImpl implements OrderService {
                     .build();
         }).toList();
 
-        // Reserve stock
         items.forEach(i -> inventoryService.reserveStock(
                 i.getProduct().getId(),
                 i.getQuantity()
         ));
-
-        OrderStatus status = "COD".equals(request.getPaymentMethod())
-                ? OrderStatus.PAID
-                : OrderStatus.PENDING;
 
         Order order = Order.builder()
                 .username(username)
@@ -134,18 +130,18 @@ public class OrderServiceImpl implements OrderService {
                 .discount(discount)
                 .finalPrice(finalPrice)
                 .couponCode(couponCode)
-                .status(status)
+                .status(OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .receiverName(request.getReceiverName())
                 .phone(request.getPhone())
                 .address(request.getAddress())
+                .paymentMethod(request.getPaymentMethod())
                 .build();
 
         items.forEach(i -> i.setOrder(order));
         order.setItems(items);
         orderRepository.save(order);
 
-        // Gửi Kafka event
         items.forEach(i -> orderProducer.sendOrderCreated(
                 OrderEvent.builder()
                         .orderId(order.getId())
@@ -155,13 +151,92 @@ public class OrderServiceImpl implements OrderService {
                         .build()
         ));
 
-        // COD → xóa cart ngay vì đã thanh toán xong
-        // VNPAY → GIỮ LẠI cart, chỉ xóa sau khi payment callback thành công
-        if (!isBuyNow && "COD".equals(request.getPaymentMethod())) {
-        request.getSelectedProductIds().forEach(productId ->
-                cartService.removeFromCart(username, productId)
-        );
+        return OrderMapper.toResponse(order);
     }
+
+    // =========================================================
+    // NHÂN VIÊN XÁC NHẬN ĐƠN
+    // =========================================================
+    @Override
+    @Transactional
+    public OrderResponse confirmOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PAID) {
+            throw new BadRequestException("Chỉ xác nhận được đơn đang PENDING hoặc PAID");
+        }
+
+        order.setStatus(OrderStatus.CONFIRMED);
+        orderRepository.save(order);
+
+        order.getItems().forEach(item ->
+                inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
+        );
+
+        order.getItems().forEach(item ->
+                cartService.removeFromCart(order.getUsername(), item.getProduct().getId())
+        );
+
+        // Notify realtime qua WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
+        orderNotificationService.notifyCartUpdated(order.getUsername());
+
+        return OrderMapper.toResponse(order);
+    }
+
+    // =========================================================
+    // NHÂN VIÊN HUỶ ĐƠN
+    // =========================================================
+    @Override
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() == OrderStatus.COMPLETED
+                || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Không thể huỷ đơn ở trạng thái này");
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        order.getItems().forEach(item ->
+                inventoryService.releaseStock(item.getProduct().getId(), item.getQuantity())
+        );
+
+        // Notify realtime qua WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
+
+        return OrderMapper.toResponse(order);
+    }
+
+    // =========================================================
+    // HOÀN TẤT ĐƠN
+    // =========================================================
+    @Override
+    @Transactional
+    public OrderResponse completeOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new BadRequestException("Chỉ hoàn tất được đơn đang CONFIRMED");
+        }
+
+        order.setStatus(OrderStatus.COMPLETED);
+        orderRepository.save(order);
+
+        //Notify realtime qua WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
 
         return OrderMapper.toResponse(order);
     }

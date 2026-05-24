@@ -1,3 +1,12 @@
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "PAID"
+  | "CANCELLED"
+  | "REFUNDED"
+  | "SHIPPING"
+  | "COMPLETED";
+
 export interface OrderItem {
   productId: number;
   productName: string;
@@ -5,6 +14,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
 }
+
 export interface BuyNowItem {
   productId: number;
   quantity: number;
@@ -15,7 +25,7 @@ export interface Order {
   finalPrice: number;
   discount: number;
   couponCode?: string;
-  status: string;
+  status: OrderStatus;
   paymentMethod: string;
   items: OrderItem[];
   receiverName: string;

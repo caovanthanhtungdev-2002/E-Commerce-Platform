@@ -112,3 +112,21 @@
   background: #fef2f2;
   color: #dc2626;
 }
+.confirmed {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.refunded {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+.completed {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.shipping {
+  background: #e3f2fd;
+  color: #1565c0;
+}

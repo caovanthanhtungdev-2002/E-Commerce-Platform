@@ -5,9 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
-@NoArgsConstructor  
+@NoArgsConstructor
 @AllArgsConstructor
 public class CategoryResponse {
 
@@ -15,4 +17,7 @@ public class CategoryResponse {
     private String name;
     private String description;
     private Boolean isActive;
+    private Long parentId;
+    private String parentName;
+    private List<CategoryResponse> children;
 }

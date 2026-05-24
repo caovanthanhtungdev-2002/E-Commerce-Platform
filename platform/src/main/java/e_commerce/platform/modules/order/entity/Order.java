@@ -55,6 +55,11 @@ public class Order {
 
     private LocalDateTime updatedAt;
 
+private String paymentMethod;
+
+    @Column
+    private LocalDateTime paidAt;
+
 @PrePersist
 public void prePersist() {
     this.createdAt = LocalDateTime.now();

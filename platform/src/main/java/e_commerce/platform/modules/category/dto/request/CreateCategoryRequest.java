@@ -10,4 +10,6 @@ public class CreateCategoryRequest {
     private String name;
 
     private String description;
+
+    private Long parentId; // null = danh mục gốc, có giá trị = danh mục con
 }

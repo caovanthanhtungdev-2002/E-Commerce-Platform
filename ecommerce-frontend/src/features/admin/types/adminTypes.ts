@@ -80,6 +80,7 @@ export interface UpdateCategoryRequest {
 export type OrderStatus =
   | "PENDING"
   | "PAID"
+  | "CONFIRMED"
   | "PROCESSING"
   | "SHIPPED"
   | "DELIVERED"
@@ -158,10 +159,10 @@ export interface UpdateCouponRequest {
 
 // ========== INVENTORY ==========
 export interface AdminInventory {
-  id: number;
-  productId: number;
+   productId: number;
   productName?: string;
-  quantity: number;
+  imageUrl?: string;
+  stock: number;
   reserved: number;
-  available: number;
+  sold: number;
 }

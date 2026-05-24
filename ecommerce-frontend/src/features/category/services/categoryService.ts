@@ -9,4 +9,11 @@ export const categoryService = {
 
     return res.data.data;
   },
+
+  async getTree() {
+    const res = await axiosInstance.get<ApiResponse<Category[]>>(
+      `/api/categories/tree`
+    );
+    return res.data.data;
+  },
 };

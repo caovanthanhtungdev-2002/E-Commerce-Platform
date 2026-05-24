@@ -45,7 +45,6 @@ export default function HomePage() {
     e.preventDefault();
     e.stopPropagation();
 
-    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang chủ
     if (!user) {
       navigate(`/login?next=${location.pathname}`);
       return;
@@ -66,7 +65,6 @@ export default function HomePage() {
     e.preventDefault();
     e.stopPropagation();
 
-    // ✅ Shopee logic: chưa login → redirect về login
     if (!user) {
       navigate(`/login?next=${location.pathname}`);
       return;
@@ -89,6 +87,18 @@ export default function HomePage() {
     { bg: "linear-gradient(135deg, #d70018 0%, #a0001a 50%, #700012 100%)", title: "🔥 Flash Sale Hôm Nay", sub: "Giảm đến 50% - Số lượng có hạn", cta: "Mua ngay" },
     { bg: "linear-gradient(135deg, #1d6348 0%, #0d4d37 50%, #083828 100%)", title: "💻 Laptop Gaming", sub: "Cấu hình khủng - Giá cực tốt", cta: "Xem ngay" },
   ];
+
+  // ← FIX: Map icon theo tên category thay vì index
+  const iconMap: Record<string, string> = {
+    "Laptop": "💻",
+    "Điện thoại": "📱",
+    "Máy tính bảng": "📟",
+    "Tai nghe": "🎧",
+    "Phụ kiện": "🔌",
+    "Bàn phím": "⌨️",
+    "Chuột": "🖱️",
+    "Màn hình": "🖥️",
+  };
 
   const flashSaleProducts = products.slice(0, 6);
   const newProducts = products.slice(0, 8);
@@ -161,19 +171,17 @@ export default function HomePage() {
       <section className={styles.section}>
         <div className={styles.sectionInner}>
           <div className={styles.categoryGrid}>
-            {categories.slice(0, 8).map((cat, i) => {
-              const icons = ["📱", "💻", "🎧", "⌚", "📷", "🖥️", "🖨️", "🔌"];
-              return (
-                <Link
-                  key={cat.id}
-                  to={`/products?categoryId=${cat.id}&categoryName=${encodeURIComponent(cat.name)}`}
-                  className={styles.categoryItem}
-                >
-                  <div className={styles.catIcon}>{icons[i % icons.length]}</div>
-                  <span className={styles.catName}>{cat.name}</span>
-                </Link>
-              );
-            })}
+            {categories.slice(0, 8).map((cat) => (
+              <Link
+                key={cat.id}
+                to={`/products?categoryId=${cat.id}&categoryName=${encodeURIComponent(cat.name)}`}
+                className={styles.categoryItem}
+              >
+                {/* ← FIX: dùng iconMap thay vì icons[i] */}
+                <div className={styles.catIcon}>{iconMap[cat.name] ?? "📦"}</div>
+                <span className={styles.catName}>{cat.name}</span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

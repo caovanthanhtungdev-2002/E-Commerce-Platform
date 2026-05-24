@@ -3,6 +3,9 @@ export interface Category {
   name: string;
   description?: string;
   isActive: boolean;
+  parentId?: number;
+  parentName?: string;
+  children?: Category[];
 }
 
 export interface PageResponse<T> {

@@ -13,4 +13,10 @@ public interface OrderService {
     OrderResponse getOrder(Long id);
 
     List<Order> getOrdersByUser(String username);
+
+    OrderResponse confirmOrder(Long orderId);   // nhân viên xác nhận
+
+    OrderResponse cancelOrder(Long orderId);    // nhân viên huỷ nếu hết hàng
+
+    OrderResponse completeOrder(Long orderId);  // nhân viên/shipper xác nhận giao xong
 }

@@ -1,23 +1,25 @@
 package e_commerce.platform.admin.service.impl;
 
+import e_commerce.platform.admin.dto.response.AdminOrderResponse;
 import e_commerce.platform.admin.service.AdminOrderService;
-
+import e_commerce.platform.exception.BadRequestException;
+import e_commerce.platform.exception.ResourceNotFoundException;
+import e_commerce.platform.modules.cart.service.CartService;
+import e_commerce.platform.modules.inventory.service.InventoryService;
 import e_commerce.platform.modules.order.entity.Order;
+import e_commerce.platform.modules.order.entity.OrderItem;
 import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
-
-import e_commerce.platform.exception.ResourceNotFoundException;
-import e_commerce.platform.exception.BadRequestException;
-
+import e_commerce.platform.modules.order.service.OrderNotificationService;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -26,114 +28,145 @@ import java.util.List;
 public class AdminOrderServiceImpl implements AdminOrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderNotificationService orderNotificationService; 
+    private final CartService cartService;                           
+    private final InventoryService inventoryService;                 
 
-    // ================= GET ALL (phân trang) =================
     @Override
-    public List<Order> getOrders(int page, int size) {
-        Pageable pageable = PageRequest.of(
-                page, size,
-                Sort.by("createdAt").descending()   // mới nhất lên đầu
-        );
-        return orderRepository.findAll(pageable).getContent();
+    public List<AdminOrderResponse> getOrders(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return orderRepository.findAll(pageable)
+                .getContent()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    // ================= GET BY ID =================
     @Override
-    public Order getOrderById(Long orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Order not found with id: " + orderId));
+    public AdminOrderResponse getOrderById(Long orderId) {
+        return toResponse(findOrderById(orderId));
     }
 
-    // ================= FILTER =================
     @Override
-    public List<Order> filterOrders(OrderStatus status, String username,
-                                    LocalDateTime from, LocalDateTime to) {
-        // validate date range
+    public List<AdminOrderResponse> filterOrders(OrderStatus status, String username,
+                                                 LocalDateTime from, LocalDateTime to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new BadRequestException("'from' date must be before 'to' date");
         }
-        return orderRepository.filterOrders(status, username, from, to);
+        return orderRepository.filterOrders(status, username, from, to)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    // ================= UPDATE STATUS =================
     @Override
     public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
-
-        Order order = getOrderById(orderId);
-
+        Order order = findOrderById(orderId);
         validateStatusTransition(order.getStatus(), newStatus);
-
         order.setStatus(newStatus);
         orderRepository.save(order);
+    }
+
+    // ================= CONFIRM ĐƠN =================
+    @Override
+    public void confirmOrder(Long orderId) {
+        Order order = findOrderById(orderId);
+
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PAID) {
+            throw new BadRequestException(
+                "Chỉ xác nhận được đơn PENDING hoặc PAID. Status hiện tại: "
+                + order.getStatus());
+        }
+
+        order.setStatus(OrderStatus.CONFIRMED);
+        orderRepository.save(order);
+
+        // Trừ stock thật
+        order.getItems().forEach(item ->
+                inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
+        );
+
+        // Xóa cart
+        order.getItems().forEach(item ->
+                cartService.removeFromCart(order.getUsername(), item.getProduct().getId())
+        );
+
+        //Notify WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
+        orderNotificationService.notifyCartUpdated(order.getUsername());
     }
 
     // ================= CANCEL =================
     @Override
     public void cancelOrder(Long orderId, String reason) {
+        Order order = findOrderById(orderId);
 
-        Order order = getOrderById(orderId);
-
-        // chỉ PENDING mới được cancel
-        if (order.getStatus() != OrderStatus.PENDING) {
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.CONFIRMED) {
             throw new BadRequestException(
-                    "Only PENDING orders can be cancelled. Current status: "
+                    "Only PENDING or CONFIRMED orders can be cancelled. Current status: "
                     + order.getStatus());
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-orderRepository.save(order);
-        // TODO: gửi email thông báo lý do cancel cho user nếu cần
-        // notificationService.sendCancelEmail(order.getUsername(), reason);
+        orderRepository.save(order);
+
+        //Notify WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
     }
 
     // ================= REFUND =================
     @Override
     public void refundOrder(Long orderId) {
+        Order order = findOrderById(orderId);
 
-        Order order = getOrderById(orderId);
-
-        // chỉ PAID mới được refund
-        if (order.getStatus() != OrderStatus.PAID) {
+        if (order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.DELIVERED) {
             throw new BadRequestException(
-                    "Only PAID orders can be refunded. Current status: "
+                    "Only PAID or DELIVERED orders can be refunded. Current status: "
                     + order.getStatus());
         }
 
         order.setStatus(OrderStatus.REFUNDED);
-
         orderRepository.save(order);
 
-        // TODO: tích hợp payment gateway để hoàn tiền thực tế
-        // paymentService.refund(order.getId(), order.getFinalPrice());
+        //Notify WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
     }
 
     // ================= FORCE COMPLETE =================
     @Override
     public void forceCompleteOrder(Long orderId) {
+        Order order = findOrderById(orderId);
 
-        Order order = getOrderById(orderId);
-
-        // chỉ PAID mới được force complete
-        if (order.getStatus() != OrderStatus.PAID) {
+        if (order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.DELIVERED) {
             throw new BadRequestException(
-                    "Only PAID orders can be completed. Current status: "
+                    "Only PAID or DELIVERED orders can be completed. Current status: "
                     + order.getStatus());
         }
 
         order.setStatus(OrderStatus.COMPLETED);
-
         orderRepository.save(order);
+
+        // Notify WebSocket
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
     }
 
     // ================= DELETE =================
     @Override
     public void deleteOrder(Long orderId) {
+        Order order = findOrderById(orderId);
 
-        Order order = getOrderById(orderId);
-
-        // chỉ cho phép xóa order CANCELLED hoặc REFUNDED
-        // tránh xóa nhầm order đang xử lý
         if (order.getStatus() != OrderStatus.CANCELLED
                 && order.getStatus() != OrderStatus.REFUNDED) {
             throw new BadRequestException(
@@ -144,26 +177,75 @@ orderRepository.save(order);
         orderRepository.deleteById(orderId);
     }
 
-    // ================= PRIVATE: validate chuyển trạng thái =================
+    // ================= PRIVATE =================
+    private Order findOrderById(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Order not found with id: " + orderId));
+    }
+
     private void validateStatusTransition(OrderStatus current, OrderStatus next) {
-
-        // định nghĩa luồng hợp lệ
         boolean valid = switch (current) {
-            case PENDING   -> next == OrderStatus.PAID
-                           || next == OrderStatus.CANCELLED;
-                           
-            case PAID      -> next == OrderStatus.COMPLETED
-                           || next == OrderStatus.REFUNDED;
-
-            // trạng thái cuối — không chuyển tiếp được
+            case PENDING    -> next == OrderStatus.CONFIRMED
+                            || next == OrderStatus.CANCELLED;
+            case CONFIRMED  -> next == OrderStatus.PROCESSING
+                            || next == OrderStatus.PAID
+                            || next == OrderStatus.CANCELLED;
+            case PROCESSING -> next == OrderStatus.SHIPPED
+                            || next == OrderStatus.CANCELLED;
+            case SHIPPED    -> next == OrderStatus.DELIVERED
+                            || next == OrderStatus.CANCELLED;
+            case DELIVERED  -> next == OrderStatus.COMPLETED
+                            || next == OrderStatus.REFUNDED;
+            case PAID       -> next == OrderStatus.CONFIRMED
+                            || next == OrderStatus.COMPLETED
+                            || next == OrderStatus.REFUNDED;
             case CANCELLED,
                  REFUNDED,
-                 COMPLETED -> false;
+                 COMPLETED  -> false;
         };
 
         if (!valid) {
             throw new BadRequestException(
                     "Invalid status transition: " + current + " → " + next);
         }
+    }
+
+    private AdminOrderResponse toResponse(Order order) {
+        List<AdminOrderResponse.OrderItemResponse> itemResponses =
+                order.getItems() == null
+                        ? Collections.emptyList()
+                        : order.getItems().stream()
+                                .map(this::toItemResponse)
+                                .toList();
+
+        return AdminOrderResponse.builder()
+                .id(order.getId())
+                .userId(order.getUserId())
+                .username(order.getUsername())
+                .totalPrice(order.getTotalPrice())
+                .discount(order.getDiscount())
+                .finalPrice(order.getFinalPrice())
+                .couponCode(order.getCouponCode())
+                .status(order.getStatus())
+                .receiverName(order.getReceiverName())
+                .address(order.getAddress())
+                .phone(order.getPhone())
+                .items(itemResponses)
+                .createdAt(order.getCreatedAt())
+                .updatedAt(order.getUpdatedAt())
+                .paymentMethod(order.getPaymentMethod())
+                .build();
+    }
+
+    private AdminOrderResponse.OrderItemResponse toItemResponse(OrderItem item) {
+        return AdminOrderResponse.OrderItemResponse.builder()
+                .id(item.getId())
+                .productId(item.getProduct() != null ? item.getProduct().getId() : null)
+                .productName(item.getProductName())
+                .price(item.getPrice())
+                .quantity(item.getQuantity())
+                .totalPrice(item.getTotalPrice())
+                .build();
     }
 }

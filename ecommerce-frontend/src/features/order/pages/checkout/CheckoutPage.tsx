@@ -128,11 +128,10 @@ export default function CheckoutPage() {
       if (!order) return;
 
       if (paymentMethod === "COD") {
-        clearCheckoutSession();
-        alert("Đặt hàng thành công!");
-        navigate(`/orders/${order.id}`);
-        return;
-      }
+    clearCheckoutSession();
+    navigate(`/orders/${order.id}`);
+    return;
+}
 
       navigate(`/payment/${order.id}`);
 

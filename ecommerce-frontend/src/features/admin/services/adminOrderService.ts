@@ -35,6 +35,10 @@ export const adminOrderService = {
     await axiosInstance.patch(`/api/admin/orders/${id}/status?status=${status}`);
   },
 
+  async confirm(id: number) {
+    await axiosInstance.patch(`/api/admin/orders/${id}/confirm`);
+  },
+
   async cancel(id: number, reason: string) {
     await axiosInstance.patch(
       `/api/admin/orders/${id}/cancel?reason=${encodeURIComponent(reason)}`

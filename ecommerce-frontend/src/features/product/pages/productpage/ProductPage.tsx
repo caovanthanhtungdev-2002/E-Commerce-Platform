@@ -13,9 +13,10 @@ export default function ProductPage() {
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [sortBy, setSortBy] = useState("default");
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { products, fetchProducts, searchProducts, loading, page, totalPages } = useProductStore();
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, tree, fetchCategories, fetchTree } = useCategoryStore();
   const { addToCart } = useCartStore();
   const { showToast } = useToast();
 
@@ -26,25 +27,24 @@ export default function ProductPage() {
 
   useEffect(() => {
     fetchCategories(0);
+    fetchTree();
   }, []);
 
- useEffect(() => {
-  const kw = searchParams.get("keyword") || "";
+  useEffect(() => {
+    const kw = searchParams.get("keyword") || "";
+    setKeyword(kw);
 
-  setKeyword(kw);
-
-  // Nếu có bất kỳ filter nào → dùng searchProducts
-  if (kw || categoryId || minPrice || maxPrice) {
-    searchProducts({
-      keyword: kw || undefined,
-      categoryId: categoryId ? Number(categoryId) : undefined,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    });
-  } else {
-    fetchProducts(0);
-  }
-}, [searchParams]);
+    if (kw || categoryId || minPrice || maxPrice) {
+      searchProducts({
+        keyword: kw || undefined,
+        categoryId: categoryId ? Number(categoryId) : undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      });
+    } else {
+      fetchProducts(0);
+    }
+  }, [searchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +73,6 @@ export default function ProductPage() {
     }
   };
 
-  // Sort products
   const sortedProducts = [...products].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
@@ -84,52 +83,76 @@ export default function ProductPage() {
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
+
         {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
             <h3 className={styles.sideTitle}>📂 Danh mục</h3>
+
             <button
               className={`${styles.catBtn} ${!categoryId ? styles.catBtnActive : ""}`}
               onClick={() => setSearchParams({})}
             >
               Tất cả sản phẩm
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                className={`${styles.catBtn} ${categoryId === String(cat.id) ? styles.catBtnActive : ""}`}
-                onClick={() => handleCategoryClick(cat.id, cat.name)}
-              >
-                {cat.name}
-              </button>
+
+            {tree.map((cat) => (
+              <div key={cat.id}>
+                <button
+                  className={`${styles.catBtn} ${categoryId === String(cat.id) ? styles.catBtnActive : ""}`}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                  onClick={() => {
+                    handleCategoryClick(cat.id, cat.name);
+                    setExpandedId(expandedId === cat.id ? null : cat.id);
+                  }}
+                >
+                  <span>{cat.name}</span>
+                  {cat.children && cat.children.length > 0 && (
+                    <span style={{ fontSize: "10px", marginLeft: "8px" }}>
+                      {expandedId === cat.id ? "▲" : "▼"}
+                    </span>
+                  )}
+                </button>
+
+                {expandedId === cat.id && cat.children && cat.children.length > 0 && (
+                  <div style={{ paddingLeft: "12px" }}>
+                    {cat.children.map((sub) => (
+                      <button
+                        key={sub.id}
+                        className={`${styles.catBtn} ${categoryId === String(sub.id) ? styles.catBtnActive : ""}`}
+                        onClick={() => handleCategoryClick(sub.id, sub.name)}
+                      >
+                        · {sub.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
           <div className={styles.sideCard}>
             <h3 className={styles.sideTitle}>💰 Lọc giá</h3>
             {[
-              { label: "Dưới 2 triệu", min: 0, max: 2000000 },
-              { label: "2 - 5 triệu", min: 2000000, max: 5000000 },
-              { label: "5 - 10 triệu", min: 5000000, max: 10000000 },
-              { label: "10 - 20 triệu", min: 10000000, max: 20000000 },
-              { label: "Trên 20 triệu", min: 20000000, max: 999999999 },
+              { label: "Dưới 2 triệu",    min: 0,        max: 2000000   },
+              { label: "2 - 5 triệu",     min: 2000000,  max: 5000000   },
+              { label: "5 - 10 triệu",    min: 5000000,  max: 10000000  },
+              { label: "10 - 20 triệu",   min: 10000000, max: 20000000  },
+              { label: "Trên 20 triệu",   min: 20000000, max: 999999999 },
             ].map((range) => (
               <button
                 key={range.label}
                 className={styles.catBtn}
                 onClick={() => {
-  const params: any = {};
-
-  if (categoryId) {
-    params.categoryId = categoryId;
-    params.categoryName = categoryName;
-  }
-
-  params.minPrice = range.min;
-  params.maxPrice = range.max;
-
-  setSearchParams(params);
-}}
+                  const params: any = {};
+                  if (categoryId) {
+                    params.categoryId = categoryId;
+                    params.categoryName = categoryName;
+                  }
+                  params.minPrice = range.min;
+                  params.maxPrice = range.max;
+                  setSearchParams(params);
+                }}
               >
                 {range.label}
               </button>
@@ -139,7 +162,6 @@ export default function ProductPage() {
 
         {/* MAIN */}
         <div className={styles.main}>
-          {/* BREADCRUMB + TITLE */}
           <div className={styles.topBar}>
             <div className={styles.breadcrumb}>
               <Link to="/">Trang chủ</Link>
@@ -149,7 +171,6 @@ export default function ProductPage() {
             <h1 className={styles.pageTitle}>{categoryName}</h1>
           </div>
 
-          {/* SEARCH + SORT */}
           <div className={styles.filterBar}>
             <form className={styles.searchForm} onSubmit={handleSearch}>
               <input
@@ -176,12 +197,10 @@ export default function ProductPage() {
             </div>
           </div>
 
-          {/* COUNT */}
           <div className={styles.resultCount}>
             {loading ? "Đang tải..." : `Tìm thấy ${products.length} sản phẩm`}
           </div>
 
-          {/* GRID */}
           {loading ? (
             <div className={styles.loadingGrid}>
               {[...Array(8)].map((_, i) => <div key={i} className={styles.skeleton} />)}
@@ -222,29 +241,18 @@ export default function ProductPage() {
             </div>
           )}
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className={styles.pagination}>
               <button
                 className={styles.pageBtn}
                 disabled={page === 0}
-                onClick={() =>
-  fetchProducts(
-    page - 1,
-    categoryId ? Number(categoryId) : undefined
-  )
-}
+                onClick={() => fetchProducts(page - 1, categoryId ? Number(categoryId) : undefined)}
               >← Trước</button>
               {[...Array(Math.min(totalPages, 7))].map((_, i) => (
                 <button
                   key={i}
                   className={`${styles.pageNum} ${i === page ? styles.pageNumActive : ""}`}
-                 onClick={() =>
-  fetchProducts(
-    i,
-    categoryId ? Number(categoryId) : undefined
-  )
-}
+                  onClick={() => fetchProducts(i, categoryId ? Number(categoryId) : undefined)}
                 >
                   {i + 1}
                 </button>
@@ -252,12 +260,7 @@ export default function ProductPage() {
               <button
                 className={styles.pageBtn}
                 disabled={page + 1 >= totalPages}
-                onClick={() =>
-  fetchProducts(
-    page + 1,
-    categoryId ? Number(categoryId) : undefined
-  )
-}
+                onClick={() => fetchProducts(page + 1, categoryId ? Number(categoryId) : undefined)}
               >Sau →</button>
             </div>
           )}

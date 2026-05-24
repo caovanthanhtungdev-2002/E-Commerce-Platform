@@ -4,6 +4,18 @@ import { useOrderStore } from "../../store/orderStore";
 import styles from "./OrderHistoryPage.module.css";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 
+const statusConfig: Record<string, { label: string; className: string }> = {
+  PENDING:    { label: "⏳ Chờ xác nhận",            className: styles.pending    },
+  CONFIRMED:  { label: "✔️ Đang chuẩn bị hàng",      className: styles.confirmed  },
+  PROCESSING: { label: "📦 Đang đóng gói",            className: styles.processing },
+  SHIPPED:    { label: "🚚 Đang giao hàng",           className: styles.shipped    },
+  DELIVERED:  { label: "📬 Đã giao đến tay khách",   className: styles.delivered  },
+  PAID:       { label: "✅ Đã thanh toán · Đang xử lý", className: styles.paid    },
+  CANCELLED:  { label: "❌ Đã huỷ",                   className: styles.cancelled  },
+  REFUNDED:   { label: "Đã hoàn tiền",             className: styles.refunded   },
+  COMPLETED:  { label: " Hoàn tất",                 className: styles.completed  },
+};
+
 export default function OrderHistoryPage() {
   const { orders, fetchOrders, loading } = useOrderStore();
   const navigate = useNavigate();
@@ -11,19 +23,6 @@ export default function OrderHistoryPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "PAID":
-        return styles.paid;
-      case "PENDING":
-        return styles.pending;
-      case "CANCELLED":
-        return styles.cancelled;
-      default:
-        return "";
-    }
-  };
 
   return (
     <div className={styles.page}>
@@ -37,35 +36,34 @@ export default function OrderHistoryPage() {
         )}
 
         <div className={styles.list}>
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className={styles.card}
-              onClick={() => navigate(`/orders/${order.id}`)}
-            >
-              <div className={styles.left}>
-                <div className={styles.orderId}>
-                  Order #{order.id}
+          {orders.map((order) => {
+            const s = statusConfig[order.status];
+            return (
+              <div
+                key={order.id}
+                className={styles.card}
+                onClick={() => navigate(`/orders/${order.id}`)}
+              >
+                <div className={styles.left}>
+                  <div className={styles.orderId}>
+                    Order #{order.id}
+                  </div>
+                  <span className={`${styles.status} ${s?.className}`}>
+                    {s?.label ?? order.status}
+                  </span>
                 </div>
 
-                <span
-                  className={`${styles.status} ${getStatusClass(order.status)}`}
-                >
-                  {order.status}
-                </span>
+                <div className={styles.right}>
+                  <div className={styles.price}>
+                    {formatCurrencyVND(order.finalPrice)}
+                  </div>
+                  <div className={styles.view}>
+                    View details →
+                  </div>
+                </div>
               </div>
-
-              <div className={styles.right}>
-                <div className={styles.price}>
-                  {formatCurrencyVND(order.finalPrice)}
-                </div>
-
-                <div className={styles.view}>
-                  View details →
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

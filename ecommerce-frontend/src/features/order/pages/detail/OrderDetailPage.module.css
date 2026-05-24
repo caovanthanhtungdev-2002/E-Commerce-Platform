@@ -114,3 +114,20 @@
   font-weight: 700;
   color: #ee4d2d;
 }
+.confirmed {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.shipping {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.refunded {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+.completed {
+  background: #f0fdf4;
+  color: #16a34a;
+}
