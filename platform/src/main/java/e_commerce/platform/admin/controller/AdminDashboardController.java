@@ -39,4 +39,13 @@ public class AdminDashboardController {
     public List<Object[]> orderStats() {
         return dashboardService.getOrderStatusStats();
     }
+    
+    @GetMapping("/cod")
+public Object codReport() {
+    return new Object() {
+        public final Double collected = dashboardService.getCodCollected();
+        public final Long orders     = dashboardService.getCodOrderCount();
+        public final List<Object[]> byDay = dashboardService.getCodRevenueByDay();
+    };
+}
 }

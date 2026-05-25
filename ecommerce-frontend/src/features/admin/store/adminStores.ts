@@ -33,6 +33,7 @@ interface AdminProductState {
   create: (data: AdminCreateProductRequest) => Promise<void>;
   update: (id: number, data: AdminUpdateProductRequest) => Promise<void>;
   remove: (id: number) => Promise<void>;
+  
 }
 
 export const useAdminProductStore = create<AdminProductState>((set) => ({
@@ -60,6 +61,9 @@ export const useAdminProductStore = create<AdminProductState>((set) => ({
   remove: async (id) => {
     await adminProductService.delete(id);
   },
+
+  
+
 }));
 
 // ========== CATEGORY STORE ==========
@@ -113,6 +117,7 @@ deliver: (id: number) => Promise<void>;
   cancel: (id: number, reason: string) => Promise<void>;
   refund: (id: number) => Promise<void>;
   remove: (id: number) => Promise<void>;
+  complete: (id: number) => Promise<void>;
 }
 
 export const useAdminOrderStore = create<AdminOrderState>((set) => ({
@@ -170,6 +175,11 @@ ship: async (id) => {
 deliver: async (id) => {
   await adminOrderService.deliver(id);
 },
+
+complete: async (id) => {
+  await adminOrderService.complete(id);
+},
+
 }));
 
 // ========== USER STORE ==========

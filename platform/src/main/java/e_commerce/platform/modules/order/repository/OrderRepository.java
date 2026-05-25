@@ -114,4 +114,17 @@ int confirmPaidOrders(
     @Param("cutoff")    LocalDateTime cutoff,
     @Param("newStatus") OrderStatus newStatus
 );
+
+// Tổng tiền COD đã thu (đơn COMPLETED)
+@Query("SELECT SUM(o.finalPrice) FROM Order o WHERE o.paymentMethod = 'COD' AND o.status = 'COMPLETED'")
+Double sumCodCollected();
+
+// Số đơn COD đã thu
+@Query("SELECT COUNT(o) FROM Order o WHERE o.paymentMethod = 'COD' AND o.status = 'COMPLETED'")
+Long countCodCollected();
+
+// Doanh thu COD theo ngày
+@Query("SELECT CAST(o.createdAt AS date), SUM(o.finalPrice) FROM Order o WHERE o.paymentMethod = 'COD' AND o.status = 'COMPLETED' GROUP BY CAST(o.createdAt AS date) ORDER BY CAST(o.createdAt AS date)")
+List<Object[]> codRevenueByDay();
+
 }

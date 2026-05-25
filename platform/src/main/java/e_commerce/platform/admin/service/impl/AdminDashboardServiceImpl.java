@@ -67,4 +67,22 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
         return orderRepository.orderStatusStats();
     }
+
+    @Override
+public Double getCodCollected() {
+    Double val = orderRepository.sumCodCollected();
+    return val != null ? val : 0.0;
+}
+
+@Override
+public Long getCodOrderCount() {
+    Long val = orderRepository.countCodCollected();
+    return val != null ? val : 0L;
+}
+
+@Override
+public List<Object[]> getCodRevenueByDay() {
+    return orderRepository.codRevenueByDay();
+}
+
 }

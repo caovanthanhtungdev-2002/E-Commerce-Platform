@@ -116,6 +116,7 @@ public class OrderServiceImpl implements OrderService {
                     .price(i.getPrice())
                     .quantity(i.getQuantity())
                     .totalPrice(i.getPrice() * i.getQuantity())
+                    .imageUrl(i.getImageUrl())
                     .build();
         }).toList();
 

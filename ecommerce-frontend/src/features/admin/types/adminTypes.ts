@@ -166,3 +166,8 @@ export interface AdminInventory {
   reserved: number;
   sold: number;
 }
+export interface CodReport {
+  collected: number;
+  orders: number;
+  byDay: [string, number][];
+}

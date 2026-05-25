@@ -20,9 +20,10 @@ public class OrderMapper {
                 .discount(order.getDiscount())
                 .finalPrice(order.getFinalPrice())
                 .couponCode(order.getCouponCode())
-                 .receiverName(order.getReceiverName())
-        .phone(order.getPhone())
-        .address(order.getAddress())
+                .receiverName(order.getReceiverName())
+                .phone(order.getPhone())
+                .address(order.getAddress())
+                .paymentMethod(order.getPaymentMethod())
                 .build();
     }
 
@@ -42,6 +43,7 @@ public class OrderMapper {
                 .productName(item.getProductName())
                 .price(item.getPrice())
                 .quantity(item.getQuantity())
+                .imageUrl(item.getImageUrl())
                 .build();
     }
 }

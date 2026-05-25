@@ -121,25 +121,33 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     }
 
     // ================= REFUND =================
-    @Override
-    public void refundOrder(Long orderId) {
-        Order order = findOrderById(orderId);
+   @Override
+public void refundOrder(Long orderId) {
+    Order order = findOrderById(orderId);
 
-        if (order.getStatus() != OrderStatus.PAID
-                && order.getStatus() != OrderStatus.DELIVERED) {
-            throw new BadRequestException(
-                    "Only PAID or DELIVERED orders can be refunded. Current status: "
-                    + order.getStatus());
-        }
-
-        order.setStatus(OrderStatus.REFUNDED);
-        orderRepository.save(order);
-
-        //Notify WebSocket
-        orderNotificationService.notifyOrderUpdated(
-                order.getUsername(), order.getId(), order.getStatus().name()
-        );
+    if (order.getStatus() != OrderStatus.PAID
+            && order.getStatus() != OrderStatus.DELIVERED
+            && order.getStatus() != OrderStatus.COMPLETED) {
+        throw new BadRequestException(
+                "Only PAID, DELIVERED or COMPLETED orders can be refunded. Current status: "
+                + order.getStatus());
     }
+
+    // Kiểm tra 7 ngày nếu là COMPLETED
+    if (order.getStatus() == OrderStatus.COMPLETED) {
+        LocalDateTime deadline = order.getUpdatedAt().plusDays(7);
+        if (LocalDateTime.now().isAfter(deadline)) {
+            throw new BadRequestException("Đã quá 7 ngày kể từ khi hoàn tất đơn hàng, không thể hoàn tiền.");
+        }
+    }
+
+    order.setStatus(OrderStatus.REFUNDED);
+    orderRepository.save(order);
+
+    orderNotificationService.notifyOrderUpdated(
+            order.getUsername(), order.getId(), order.getStatus().name()
+    );
+}
 
     // ================= FORCE COMPLETE =================
     @Override

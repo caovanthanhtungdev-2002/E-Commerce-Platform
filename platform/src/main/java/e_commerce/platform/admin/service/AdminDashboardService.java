@@ -17,4 +17,10 @@ public interface AdminDashboardService {
     List<Object[]> getTopSellingProducts();
 
     List<Object[]> getOrderStatusStats();
+
+    Double getCodCollected();
+
+Long getCodOrderCount();
+
+List<Object[]> getCodRevenueByDay();
 }

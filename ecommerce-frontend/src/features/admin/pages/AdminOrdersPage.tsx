@@ -11,8 +11,10 @@ const STATUS_OPTIONS: OrderStatus[] = [
   "PROCESSING",
   "SHIPPED",
   "DELIVERED",
+  "COMPLETED",
   "CANCELLED",
   "REFUNDED",
+  "RETURNED",
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -24,6 +26,8 @@ const STATUS_BADGE: Record<string, string> = {
   DELIVERED:  styles.badgePaid,
   CANCELLED:  styles.badgeCancelled,
   REFUNDED:   styles.badgeRefunded,
+  COMPLETED:  styles.badgePaid,
+  RETURNED:   styles.badgeRefunded,
 };
 
 export default function AdminOrdersPage() {
@@ -39,6 +43,7 @@ export default function AdminOrdersPage() {
   const processOrder  = useAdminOrderStore((s) => s.process);
   const shipOrder     = useAdminOrderStore((s) => s.ship);
   const deliverOrder  = useAdminOrderStore((s) => s.deliver);
+  const completeOrder = useAdminOrderStore((s) => s.complete);
 
   const [page, setPage] = useState(0);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
@@ -61,8 +66,9 @@ export default function AdminOrdersPage() {
     try {
       await updateStatus(id, status);
       fetchOrders(page);
-    } catch {
-      alert("Cập nhật thất bại");
+    } catch (err: any) {
+      console.log("LỖI UPDATE STATUS:", err?.response?.data);
+      alert(err?.response?.data?.message || "Cập nhật thất bại");
     }
   };
 
@@ -71,28 +77,28 @@ export default function AdminOrdersPage() {
       await confirmOrder(id);
       fetchOrders(page);
     } catch (err: any) {
+      console.log("LỖI CONFIRM:", err?.response?.data);
       alert(err?.response?.data?.message || "Xác nhận thất bại");
     }
   };
 
   const handleProcess = async (id: number) => {
-  try {
-    await processOrder(id);
-    fetchOrders(page);
-  } catch (err: any) {
-    console.log("LỖI PROCESS:", err);           
-    console.log("response:", err?.response);     
-    console.log("message:", err?.response?.data);
-    alert(err?.response?.data?.message || "Thất bại");
-  }
-};
+    try {
+      await processOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      console.log("LỖI PROCESS:", err?.response?.data);
+      alert(err?.response?.data?.message || "Xử lý thất bại");
+    }
+  };
 
   const handleShip = async (id: number) => {
     try {
       await shipOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Thất bại");
+      console.log("LỖI SHIP:", err?.response?.data);
+      alert(err?.response?.data?.message || "Giao vận thất bại");
     }
   };
 
@@ -101,7 +107,28 @@ export default function AdminOrdersPage() {
       await deliverOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Thất bại");
+      console.log("LỖI DELIVER:", err?.response?.data);
+      alert(err?.response?.data?.message || "Cập nhật giao hàng thất bại");
+    }
+  };
+
+  const handleComplete = async (id: number) => {
+    try {
+      await completeOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      console.log("LỖI COMPLETE:", err?.response?.data);
+      alert(err?.response?.data?.message || "Hoàn thành thất bại");
+    }
+  };
+
+  const handleRefund = async (id: number) => {
+    try {
+      await refundOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      console.log("LỖI REFUND:", err?.response?.data);
+      alert(err?.response?.data?.message || "Hoàn tiền thất bại");
     }
   };
 
@@ -112,17 +139,9 @@ export default function AdminOrdersPage() {
       setCancelId(null);
       setCancelReason("");
       fetchOrders(page);
-    } catch {
-      alert("Hủy đơn thất bại");
-    }
-  };
-
-  const handleRefund = async (id: number) => {
-    try {
-      await refundOrder(id);
-      fetchOrders(page);
-    } catch {
-      alert("Hoàn tiền thất bại");
+    } catch (err: any) {
+      console.log("LỖI CANCEL:", err?.response?.data);
+      alert(err?.response?.data?.message || "Hủy đơn thất bại");
     }
   };
 
@@ -130,8 +149,9 @@ export default function AdminOrdersPage() {
     try {
       await removeOrder(id);
       fetchOrders(page);
-    } catch {
-      alert("Xóa thất bại");
+    } catch (err: any) {
+      console.log("LỖI DELETE:", err?.response?.data);
+      alert(err?.response?.data?.message || "Xóa thất bại");
     }
   };
 
@@ -225,23 +245,33 @@ export default function AdminOrdersPage() {
 
                     {o.status === "PROCESSING" && (
                       <button className={styles.btnToggle} onClick={() => handleShip(o.id)}>
-                        🚚 Giao vận
+                        Đang trên đường giao 
                       </button>
                     )}
 
                     {o.status === "SHIPPED" && (
                       <button className={styles.btnToggle} onClick={() => handleDeliver(o.id)}>
-                        Đang Giao Hàng
+                        Đã giao hàng
                       </button>
                     )}
 
-                    {["PAID", "DELIVERED"].includes(o.status) && (
+                    {o.status === "DELIVERED" && (
+                      <button
+                        className={styles.btnToggle}
+                        style={{ whiteSpace: "nowrap" }}
+                        onClick={() => handleComplete(o.id)}
+                      >
+                        Hoàn thành
+                      </button>
+                    )}
+
+                    {["PAID", "DELIVERED", "COMPLETED"].includes(o.status) && (
                       <button className={styles.btnToggle} onClick={() => handleRefund(o.id)}>
                         ↩ Hoàn
                       </button>
                     )}
 
-                    {!["CANCELLED", "REFUNDED"].includes(o.status) && (
+                    {!["CANCELLED", "REFUNDED", "COMPLETED", "RETURNED"].includes(o.status) && (
                       <button className={styles.btnDel} onClick={() => setCancelId(o.id)}>
                         Hủy
                       </button>

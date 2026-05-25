@@ -64,4 +64,8 @@ async ship(id: number) {
 async deliver(id: number) {
   await axiosInstance.patch(`/api/admin/orders/${id}/deliver`);
 },
+async complete(id: number) {
+  await axiosInstance.patch(`/api/admin/orders/${id}/complete`);
+},
+
 };

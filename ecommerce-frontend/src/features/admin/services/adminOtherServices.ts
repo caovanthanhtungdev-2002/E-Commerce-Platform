@@ -125,4 +125,10 @@ export const adminDashboardService = {
     );
     return res.data;
   },
+
+  async getCodReport() {
+  const res = await axiosInstance.get(`/api/admin/dashboard/cod`);
+  return res.data;
+},
+
 };

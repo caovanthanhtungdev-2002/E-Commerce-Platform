@@ -23,4 +23,6 @@ public class OrderResponse {
     private String receiverName;
 private String phone;
 private String address;
+
+private String paymentMethod;
 }
