@@ -14,8 +14,6 @@ public class UpdateProfileRequest {
 
     private String phone;
 
-    @Size(max = 255)
-    private String address;
 
     @Size(max = 500)
     private String bio;

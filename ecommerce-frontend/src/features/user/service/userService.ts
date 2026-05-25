@@ -1,4 +1,5 @@
 import axiosInstance from "@/config/axios";
+import type { Address } from "../types/userTypes";
 
 export const userService = {
   async getProfile() {
@@ -9,7 +10,6 @@ export const userService = {
   async updateProfile(data: {
     fullName: string;
     phone?: string;
-    address?: string;
     bio?: string;
   }) {
     const res = await axiosInstance.put("/api/user/profile", data);
@@ -35,5 +35,28 @@ export const userService = {
     });
 
     return res.data.data;
+  },
+  // ===== ADDRESS =====
+  async getAddresses(): Promise<Address[]> {
+    const res = await axiosInstance.get("/api/user/addresses");
+    return res.data.data;
+  },
+
+  async addAddress(data: Omit<Address, "id" | "createdAt">) {
+    const res = await axiosInstance.post("/api/user/addresses", data);
+    return res.data.data;
+  },
+
+  async updateAddress(id: number, data: Omit<Address, "id" | "createdAt">) {
+    const res = await axiosInstance.put(`/api/user/addresses/${id}`, data);
+    return res.data.data;
+  },
+
+  async deleteAddress(id: number) {
+    await axiosInstance.delete(`/api/user/addresses/${id}`);
+  },
+
+  async setDefaultAddress(id: number) {
+    await axiosInstance.patch(`/api/user/addresses/${id}/default`);
   },
 };

@@ -2,6 +2,9 @@ package e_commerce.platform.modules.auth.service;
 
 import e_commerce.platform.modules.auth.dto.response.AuthResponse;
 import e_commerce.platform.modules.auth.dto.response.UserResponse;
+import e_commerce.platform.modules.auth.enums.UserStatus;
+import e_commerce.platform.modules.user.dto.request.ChangePasswordRequest;
+import e_commerce.platform.modules.user.dto.request.UpdateProfileRequest;
 import e_commerce.platform.modules.auth.dto.request.LoginRequest;
 import e_commerce.platform.modules.auth.dto.request.RegisterRequest;
 import e_commerce.platform.modules.auth.dto.request.ResetPasswordRequest;
@@ -25,4 +28,6 @@ public interface AuthService {
 
     // xác nhận OTP + đổi password
     void resetPassword(ResetPasswordRequest request);
+
+    
 }

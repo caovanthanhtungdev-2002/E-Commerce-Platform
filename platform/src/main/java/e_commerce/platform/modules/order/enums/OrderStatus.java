@@ -9,5 +9,6 @@ public enum OrderStatus {
     PAID,        // đã thanh toán online (VNPAY)
     CANCELLED,   // huỷ
     REFUNDED,    // đã hoàn tiền cho đơn VNPAY bị huỷ
-    COMPLETED    // đơn hoàn tất
+    COMPLETED,   // đơn hoàn tất
+    RETURNED
 }

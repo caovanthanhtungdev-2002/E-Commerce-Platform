@@ -176,6 +176,47 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
         orderRepository.deleteById(orderId);
     }
+// ================= PROCESS =================
+@Override
+public void processOrder(Long orderId) {
+    Order order = findOrderById(orderId);
+    if (order.getStatus() != OrderStatus.CONFIRMED) {
+        throw new BadRequestException(
+            "Only CONFIRMED orders can be processed. Current: " + order.getStatus());
+    }
+    order.setStatus(OrderStatus.PROCESSING);
+    orderRepository.save(order);
+    orderNotificationService.notifyOrderUpdated(
+        order.getUsername(), order.getId(), order.getStatus().name());
+}
+
+// ================= SHIP =================
+@Override
+public void shipOrder(Long orderId) {
+    Order order = findOrderById(orderId);
+    if (order.getStatus() != OrderStatus.PROCESSING) {
+        throw new BadRequestException(
+            "Only PROCESSING orders can be shipped. Current: " + order.getStatus());
+    }
+    order.setStatus(OrderStatus.SHIPPED);
+    orderRepository.save(order);
+    orderNotificationService.notifyOrderUpdated(
+        order.getUsername(), order.getId(), order.getStatus().name());
+}
+
+// ================= DELIVER =================
+@Override
+public void deliverOrder(Long orderId) {
+    Order order = findOrderById(orderId);
+    if (order.getStatus() != OrderStatus.SHIPPED) {
+        throw new BadRequestException(
+            "Only SHIPPED orders can be delivered. Current: " + order.getStatus());
+    }
+    order.setStatus(OrderStatus.DELIVERED);
+    orderRepository.save(order);
+    orderNotificationService.notifyOrderUpdated(
+        order.getUsername(), order.getId(), order.getStatus().name());
+}
 
     // ================= PRIVATE =================
     private Order findOrderById(Long orderId) {
@@ -202,7 +243,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
                             || next == OrderStatus.REFUNDED;
             case CANCELLED,
                  REFUNDED,
-                 COMPLETED  -> false;
+                 COMPLETED,
+                 RETURNED   -> false;
         };
 
         if (!valid) {

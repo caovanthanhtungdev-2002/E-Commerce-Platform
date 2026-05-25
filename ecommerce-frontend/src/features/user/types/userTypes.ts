@@ -4,7 +4,6 @@ export interface User {
   email: string;
   fullName: string;
   phone?: string;
-  address?: string;
   bio?: string;
   avatar?: string;
   role: "USER" | "ADMIN";
@@ -15,7 +14,6 @@ export interface User {
 export interface UpdateProfileRequest {
   fullName: string;
   phone?: string;
-  address?: string;
   bio?: string;
 }
 
@@ -30,4 +28,17 @@ export interface UserState {
   loading: boolean;
   error: string | null;
   successMessage: string | null;
+}
+export interface Address {
+  id: number;
+  receiverName: string;
+  receiverPhone: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  province: string;
+  postalCode?: string;
+  country?: string;
+  isDefault: boolean;
+  createdAt: string;
 }

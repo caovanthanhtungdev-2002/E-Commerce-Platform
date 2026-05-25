@@ -602,3 +602,123 @@
   color: #ee4d2d;
   text-decoration: none;
 }
+/* =========================================
+   ADDRESS LIST — CHECKOUT
+   ========================================= */
+
+.addressList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px 16px;
+}
+
+.addressOption {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.addressOption:hover {
+  border-color: #ee4d2d;
+  background: #fffaf9;
+}
+
+.addressOptionSelected {
+  border-color: #ee4d2d;
+  background: #fff5f3;
+  box-shadow: 0 0 0 1px #ee4d2d22;
+}
+
+.addressOption input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #ee4d2d;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.addressOptionBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.addressOptionName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.addressOptionPhone {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+}
+
+.addressOptionDot {
+  color: #ccc;
+  font-weight: 400;
+}
+
+.addressBadgeDefault {
+  font-size: 11px;
+  color: #ee4d2d;
+  border: 1px solid #ee4d2d;
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.addressOptionText {
+  font-size: 13px;
+  color: #777;
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.addressEmptyBox {
+  padding: 20px;
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.addressEmptyBox a {
+  color: #ee4d2d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.addressEmptyBox a:hover {
+  text-decoration: underline;
+}
+
+.addressHeaderLink {
+  margin-left: auto;
+  font-size: 13px;
+  color: #ee4d2d;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.addressHeaderLink:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}

@@ -10,7 +10,6 @@ public class UserResponse {
     private String email;
     private String fullName;
     private String phone;
-    private String address;
     private String bio;
     private String avatar;
     private String role;

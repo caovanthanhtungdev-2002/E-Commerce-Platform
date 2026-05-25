@@ -14,48 +14,53 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   PROCESSING: { label: "📦 Đang đóng gói",               className: styles.processing },
   SHIPPED:    { label: "🚚 Đang giao hàng",              className: styles.shipped    },
   DELIVERED:  { label: "📬 Đã giao đến tay khách",      className: styles.delivered  },
-  PAID:       { label: " Đã thanh toán · Đang xử lý", className: styles.paid       },
+  PAID:       { label: "💳 Đã thanh toán · Đang xử lý", className: styles.paid       },
   CANCELLED:  { label: "❌ Đã huỷ",                      className: styles.cancelled  },
   REFUNDED:   { label: "💜 Đã hoàn tiền",               className: styles.refunded   },
   COMPLETED:  { label: "🎉 Hoàn tất",                    className: styles.completed  },
+  RETURNED:   { label: "🔄 Yêu cầu trả hàng",           className: styles.refunded   },
 };
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { currentOrder, fetchOrder, loading } = useOrderStore();
+  const { currentOrder, fetchOrder, updateOrderStatus, loading } = useOrderStore();
   const { fetchCart } = useCartStore();
-  const { user, fetchProfile } = useUserStore(); 
+  const { user, fetchProfile } = useUserStore();
 
   useEffect(() => {
     if (id) {
       fetchOrder(Number(id));
       fetchCart();
     }
-    // fetch profile nếu chưa có
-    if (!user) {
-      fetchProfile();
-    }
+    if (!user) fetchProfile();
   }, [id]);
 
-  //  WebSocket — lắng nghe realtime
   useWebSocket({
     username: user?.username ?? "",
     onOrderUpdate: (orderId, status) => {
-      if (orderId === Number(id)) {
-        fetchOrder(Number(id));
-      }
+      if (orderId === Number(id)) fetchOrder(Number(id));
     },
-    onCartUpdate: () => {
-      fetchCart();
-    },
+    onCartUpdate: () => fetchCart(),
   });
 
   if (loading && !currentOrder) return <p>Loading...</p>;
   if (!currentOrder) return <p>Order not found</p>;
 
   const s = statusConfig[currentOrder.status];
+
+  const handleConfirmReceived = async () => {
+    if (!confirm("Xác nhận bạn đã nhận được hàng?")) return;
+    await updateOrderStatus(currentOrder.id, "COMPLETED");
+    fetchOrder(currentOrder.id);
+  };
+
+  const handleRequestReturn = async () => {
+    if (!confirm("Bạn muốn yêu cầu trả hàng / hoàn tiền?")) return;
+    await updateOrderStatus(currentOrder.id, "RETURNED");
+    fetchOrder(currentOrder.id);
+  };
 
   return (
     <div className={styles.page}>
@@ -69,6 +74,7 @@ export default function OrderDetailPage() {
           </span>
         </div>
 
+        {/* Thanh toán VNPAY */}
         {currentOrder.status === "PENDING" && currentOrder.paymentMethod === "VNPAY" && (
           <button
             className={styles.payBtn}
@@ -76,6 +82,44 @@ export default function OrderDetailPage() {
           >
             Thanh toán ngay
           </button>
+        )}
+
+        {/* Xác nhận nhận hàng / trả hàng */}
+        {currentOrder.status === "DELIVERED" && (
+          <div className={styles.deliveredActions}>
+            <p className={styles.deliveredNote}>
+              🎁 Bạn đã nhận được hàng chưa? Xác nhận để hoàn tất đơn hàng.
+            </p>
+            <div className={styles.deliveredBtns}>
+              <button
+                className={styles.btnConfirmReceived}
+                onClick={handleConfirmReceived}
+                disabled={loading}
+              >
+                ✅ Đã nhận được hàng
+              </button>
+              <button
+                className={styles.btnReturn}
+                onClick={handleRequestReturn}
+                disabled={loading}
+              >
+                🔄 Yêu cầu trả hàng
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Đánh giá sau khi COMPLETED */}
+        {currentOrder.status === "COMPLETED" && (
+          <div className={styles.reviewBox}>
+            <p className={styles.reviewNote}>🌟 Đơn hàng hoàn tất! Hãy đánh giá sản phẩm nhé.</p>
+            <button
+              className={styles.btnReview}
+              onClick={() => navigate(`/orders/${currentOrder.id}/review`)}
+            >
+              ✍️ Đánh giá sản phẩm
+            </button>
+          </div>
         )}
 
         <div className={styles.items}>

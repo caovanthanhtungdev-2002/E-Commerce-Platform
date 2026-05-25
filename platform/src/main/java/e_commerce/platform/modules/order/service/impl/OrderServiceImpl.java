@@ -252,4 +252,36 @@ public class OrderServiceImpl implements OrderService {
     public List<Order> getOrdersByUser(String username) {
         return orderRepository.findByUsername(username);
     }
+    // KHÁCH XÁC NHẬN NHẬN HÀNG / YÊU CẦU TRẢ HÀNG
+// =========================================================
+@Override
+@Transactional
+public OrderResponse updateStatusByCustomer(Long orderId, String username, String status) {
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+    // Chỉ cho phép chủ đơn hàng thao tác
+    if (!order.getUsername().equals(username)) {
+        throw new BadRequestException("Bạn không có quyền thao tác đơn hàng này");
+    }
+
+    // Chỉ cho phép khi đang DELIVERED
+    if (order.getStatus() != OrderStatus.DELIVERED) {
+        throw new BadRequestException("Chỉ có thể xác nhận khi đơn đang ở trạng thái DELIVERED");
+    }
+
+    switch (status.toUpperCase()) {
+        case "COMPLETED" -> order.setStatus(OrderStatus.COMPLETED);
+        case "RETURNED"  -> order.setStatus(OrderStatus.RETURNED);
+        default -> throw new BadRequestException("Trạng thái không hợp lệ: " + status);
+    }
+
+    orderRepository.save(order);
+
+    orderNotificationService.notifyOrderUpdated(
+            order.getUsername(), order.getId(), order.getStatus().name()
+    );
+
+    return OrderMapper.toResponse(order);
+}
 }

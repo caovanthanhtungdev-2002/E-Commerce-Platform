@@ -63,7 +63,7 @@ public UserResponse getProfile(String username) {
         if (request.getPhone() != null) {
             user.setPhone(request.getPhone());
         }
-          if (request.getAddress() != null) user.setAddress(request.getAddress());
+          
 
     if (request.getBio() != null) user.setBio(request.getBio());
 

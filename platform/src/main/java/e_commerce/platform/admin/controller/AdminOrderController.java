@@ -115,4 +115,21 @@ public ResponseEntity<ApiResponse<Void>> confirm(@PathVariable Long id) {
         orderService.deleteOrder(id);
         return ResponseEntity.noContent().build();
     }
+    @PatchMapping("/{orderId}/process")
+public ResponseEntity<Void> processOrder(@PathVariable Long orderId) {
+    orderService.processOrder(orderId);
+    return ResponseEntity.ok().build();
+}
+
+@PatchMapping("/{orderId}/ship")
+public ResponseEntity<Void> shipOrder(@PathVariable Long orderId) {
+    orderService.shipOrder(orderId);
+    return ResponseEntity.ok().build();
+}
+
+@PatchMapping("/{orderId}/deliver")
+public ResponseEntity<Void> deliverOrder(@PathVariable Long orderId) {
+    orderService.deliverOrder(orderId);
+    return ResponseEntity.ok().build();
+}
 }

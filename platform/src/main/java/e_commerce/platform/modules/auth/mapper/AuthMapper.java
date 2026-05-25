@@ -8,8 +8,11 @@ public class AuthMapper {
     public static UserResponse toUserResponse(User user) {
         return UserResponse.builder()
                 .username(user.getUsername())
+                .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phone(user.getPhone())
+                .bio(user.getBio())
+                .avatar(user.getAvatar())
                 .role(user.getRole().name())
                 .build();
     }

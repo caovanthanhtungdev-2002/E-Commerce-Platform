@@ -2,9 +2,12 @@ export type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
   | "PAID"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
   | "CANCELLED"
   | "REFUNDED"
-  | "SHIPPING"
+  | "RETURNED"
   | "COMPLETED";
 
 export interface OrderItem {
@@ -19,6 +22,7 @@ export interface BuyNowItem {
   productId: number;
   quantity: number;
 }
+
 export interface Order {
   id: number;
   totalPrice: number;

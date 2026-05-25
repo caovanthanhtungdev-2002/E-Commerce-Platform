@@ -8,18 +8,24 @@ export default function AdminUsersPage() {
 
   useEffect(() => { fetch(page); }, [page]);
 
-  const handleToggle = async (id: number, active: boolean) => {
+  const handleToggle = async (id: number, enabled: boolean) => {
     try {
-      if (active) await block(id);
+      if (enabled) await block(id);
       else await activate(id);
       fetch(page);
-    } catch { alert("Thao tác thất bại"); }
+    } catch {
+      alert("Thao tác thất bại");
+    }
   };
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Xóa người dùng "${name}"?`)) return;
-    try { await remove(id); fetch(page); }
-    catch { alert("Xóa thất bại"); }
+    try {
+      await remove(id);
+      fetch(page);
+    } catch {
+      alert("Xóa thất bại");
+    }
   };
 
   return (
@@ -64,16 +70,24 @@ export default function AdminUsersPage() {
                   </span>
                 </td>
                 <td>
-                  <span className={`${styles.badge} ${u.active ? styles.badgeActive : styles.badgeInactive}`}>
-                    {u.active ? "Hoạt động" : "Bị khóa"}
+                  <span className={`${styles.badge} ${u.enabled ? styles.badgeActive : styles.badgeInactive}`}>
+                    {u.enabled ? "Hoạt động" : "Bị khóa"}
                   </span>
                 </td>
                 <td>
                   <div className={styles.actions}>
-                    <button className={styles.btnToggle} onClick={() => handleToggle(u.id, u.active)}>
-                      {u.active ? "🔒 Khóa" : "✅ Mở"}
+                    <button
+                      className={styles.btnToggle}
+                      onClick={() => handleToggle(u.id, u.enabled)}
+                    >
+                      {u.enabled ? "🔒 Khóa" : "✅ Mở"}
                     </button>
-                    <button className={styles.btnDel} onClick={() => handleDelete(u.id, u.fullName || u.username)}>Xóa</button>
+                    <button
+                      className={styles.btnDel}
+                      onClick={() => handleDelete(u.id, u.fullName || u.username)}
+                    >
+                      Xóa
+                    </button>
                   </div>
                 </td>
               </tr>

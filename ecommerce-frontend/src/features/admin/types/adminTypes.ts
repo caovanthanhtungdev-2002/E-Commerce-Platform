@@ -120,7 +120,7 @@ export interface AdminUser {
   phone?: string;
   address?: string;
   role: string;
-  active: boolean;
+  enabled: boolean;
   createdAt?: string;
 }
 

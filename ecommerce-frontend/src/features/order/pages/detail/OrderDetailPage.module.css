@@ -131,3 +131,109 @@
   background: #f0fdf4;
   color: #16a34a;
 }
+/* ── DELIVERED ACTIONS ── */
+.deliveredActions {
+  background: #fff8e1;
+  border: 1.5px solid #ffe082;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+
+.deliveredNote {
+  font-size: 14px;
+  color: #5f4e00;
+  margin: 0 0 14px;
+  font-weight: 500;
+}
+
+.deliveredBtns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnConfirmReceived {
+  flex: 1;
+  min-width: 160px;
+  padding: 11px 20px;
+  background: #ee4d2d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnConfirmReceived:hover:not(:disabled) {
+  background: #d43b1c;
+}
+
+.btnConfirmReceived:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnReturn {
+  flex: 1;
+  min-width: 160px;
+  padding: 11px 20px;
+  background: #fff;
+  color: #555;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnReturn:hover:not(:disabled) {
+  border-color: #ee4d2d;
+  color: #ee4d2d;
+}
+
+.btnReturn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── REVIEW BOX ── */
+.reviewBox {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reviewNote {
+  font-size: 14px;
+  color: #166534;
+  font-weight: 500;
+  margin: 0;
+}
+
+.btnReview {
+  padding: 10px 20px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btnReview:hover {
+  background: #15803d;
+}

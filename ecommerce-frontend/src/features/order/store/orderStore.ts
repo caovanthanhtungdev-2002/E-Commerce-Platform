@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as orderService from "../services/orderService";
 import type { Order, CreateOrderRequest } from "../types/orderTypes";
-import { useCartStore } from "@/features/cart/store/cartStore"; 
+import { useCartStore } from "@/features/cart/store/cartStore";
 
 interface OrderState {
   currentOrder: Order | null;
@@ -12,6 +12,7 @@ interface OrderState {
   create: (payload: CreateOrderRequest) => Promise<void>;
   fetchOrder: (id: number) => Promise<void>;
   fetchOrders: () => Promise<void>;
+  updateOrderStatus: (id: number, status: string) => Promise<void>;
 }
 
 export const useOrderStore = create<OrderState>((set) => ({
@@ -24,14 +25,9 @@ export const useOrderStore = create<OrderState>((set) => ({
   create: async (payload) => {
     try {
       set({ loading: true, error: null });
-
       const order = await orderService.createOrder(payload);
-
       set({ currentOrder: order, loading: false });
-
-      //Fetch lại giỏ hàng sau khi đặt hàng thành công (cả COD lẫn VNPAY)
       await useCartStore.getState().fetchCart();
-
     } catch (err: any) {
       set({
         error: err?.response?.data?.message || "Create order failed",
@@ -64,6 +60,20 @@ export const useOrderStore = create<OrderState>((set) => ({
         error: err?.response?.data?.message || "Fetch orders failed",
         loading: false,
       });
+    }
+  },
+
+  updateOrderStatus: async (id, status) => {
+    try {
+      set({ loading: true, error: null });
+      const order = await orderService.updateOrderStatus(id, status);
+      set({ currentOrder: order, loading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || "Update status failed",
+        loading: false,
+      });
+      throw err;
     }
   },
 

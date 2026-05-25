@@ -26,4 +26,8 @@ public interface AdminOrderService {
     void deleteOrder(Long orderId);
 
     void confirmOrder(Long orderId);
+    void processOrder(Long orderId);
+    
+void shipOrder(Long orderId);
+void deliverOrder(Long orderId);
 }

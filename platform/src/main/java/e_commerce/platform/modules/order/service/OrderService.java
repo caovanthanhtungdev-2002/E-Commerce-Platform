@@ -19,4 +19,7 @@ public interface OrderService {
     OrderResponse cancelOrder(Long orderId);    // nhân viên huỷ nếu hết hàng
 
     OrderResponse completeOrder(Long orderId);  // nhân viên/shipper xác nhận giao xong
+    
+    // Khách xác nhận nhận hàng hoặc yêu cầu trả hàng
+    OrderResponse updateStatusByCustomer(Long orderId, String username, String status);
 }

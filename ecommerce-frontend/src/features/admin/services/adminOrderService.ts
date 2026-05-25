@@ -52,4 +52,16 @@ export const adminOrderService = {
   async delete(id: number) {
     await axiosInstance.delete(`/api/admin/orders/${id}`);
   },
+
+  async process(id: number) {
+  await axiosInstance.patch(`/api/admin/orders/${id}/process`);
+},
+
+async ship(id: number) {
+  await axiosInstance.patch(`/api/admin/orders/${id}/ship`);
+},
+
+async deliver(id: number) {
+  await axiosInstance.patch(`/api/admin/orders/${id}/deliver`);
+},
 };

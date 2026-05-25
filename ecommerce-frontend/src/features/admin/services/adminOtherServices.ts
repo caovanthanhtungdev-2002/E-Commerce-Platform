@@ -11,11 +11,10 @@ import type {
 // ========== USER SERVICE ==========
 export const adminUserService = {
   async getAll(page = 0, size = 20) {
-    const res = await axiosInstance.get<AdminUser[]>(
-      `/api/admin/users?page=${page}&size=${size}`
-    );
-    return res.data;
-  },
+  const res = await axiosInstance.get(`/api/admin/users?page=${page}&size=${size}`);
+  console.log("users response:", res.data); // xem structure
+  return Array.isArray(res.data) ? res.data : (res.data?.content ?? []);
+},
 
   async block(id: number) {
     await axiosInstance.patch(`/api/admin/users/${id}/block`);

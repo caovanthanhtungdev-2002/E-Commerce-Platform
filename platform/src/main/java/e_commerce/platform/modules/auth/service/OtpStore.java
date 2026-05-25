@@ -1,15 +1,15 @@
 package e_commerce.platform.modules.auth.service;
 
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+
 
 @Component
 public class OtpStore {
 
-      // lưu OTP tạm thời trong RAM (test nhanh)
-    private final Map<String, String> otpMap = new HashMap<>();
+     private final Map<String, String> otpMap = new ConcurrentHashMap<>();
 
      // lưu OTP theo email
     public void save(String email, String otp) {

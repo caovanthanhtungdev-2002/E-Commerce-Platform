@@ -106,7 +106,10 @@ interface AdminOrderState {
   fetch: (page?: number, size?: number) => Promise<void>;
   filter: (params: { status?: OrderStatus; username?: string; from?: string; to?: string }) => Promise<void>;
   updateStatus: (id: number, status: OrderStatus) => Promise<void>;
-  confirm: (id: number) => Promise<void>;  // ← THÊM
+  confirm: (id: number) => Promise<void>;  
+  process: (id: number) => Promise<void>;
+ship: (id: number) => Promise<void>;
+deliver: (id: number) => Promise<void>;
   cancel: (id: number, reason: string) => Promise<void>;
   refund: (id: number) => Promise<void>;
   remove: (id: number) => Promise<void>;
@@ -155,6 +158,18 @@ export const useAdminOrderStore = create<AdminOrderState>((set) => ({
   remove: async (id) => {
     await adminOrderService.delete(id);
   },
+
+  process: async (id) => {
+  await adminOrderService.process(id);
+},
+
+ship: async (id) => {
+  await adminOrderService.ship(id);
+},
+
+deliver: async (id) => {
+  await adminOrderService.deliver(id);
+},
 }));
 
 // ========== USER STORE ==========

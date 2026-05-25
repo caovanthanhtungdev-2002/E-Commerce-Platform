@@ -4,30 +4,41 @@ import { formatCurrencyVND } from "@/utils/formatCurrency";
 import type { OrderStatus } from "../types/adminTypes";
 import styles from "./AdminPage.module.css";
 
-const STATUS_OPTIONS: OrderStatus[] = ["PENDING","CONFIRMED","PAID","PROCESSING","SHIPPED","DELIVERED","CANCELLED","REFUNDED"];
+const STATUS_OPTIONS: OrderStatus[] = [
+  "PENDING",
+  "CONFIRMED",
+  "PAID",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+  "REFUNDED",
+];
 
 const STATUS_BADGE: Record<string, string> = {
-  PENDING: styles.badgePending,
-  CONFIRMED: styles.badgePaid,
-  PAID: styles.badgePaid,
+  PENDING:    styles.badgePending,
+  CONFIRMED:  styles.badgePaid,
+  PAID:       styles.badgePaid,
   PROCESSING: styles.badgePaid,
-  SHIPPED: styles.badgeShipped,
-  DELIVERED: styles.badgePaid,
-  CANCELLED: styles.badgeCancelled,
-  REFUNDED: styles.badgeRefunded,
+  SHIPPED:    styles.badgeShipped,
+  DELIVERED:  styles.badgePaid,
+  CANCELLED:  styles.badgeCancelled,
+  REFUNDED:   styles.badgeRefunded,
 };
 
 export default function AdminOrdersPage() {
-  // Dùng selector riêng từng field — tránh conflict với browser globals
-  const orders       = useAdminOrderStore((s) => s.orders);
-  const loading      = useAdminOrderStore((s) => s.loading);
-  const fetchOrders  = useAdminOrderStore((s) => s.fetch);
-  const filterOrders = useAdminOrderStore((s) => s.filter);
-  const updateStatus = useAdminOrderStore((s) => s.updateStatus);
-  const confirmOrder = useAdminOrderStore((s) => s.confirm);
-  const cancelOrder  = useAdminOrderStore((s) => s.cancel);
-  const refundOrder  = useAdminOrderStore((s) => s.refund);
-  const removeOrder  = useAdminOrderStore((s) => s.remove);
+  const orders        = useAdminOrderStore((s) => s.orders);
+  const loading       = useAdminOrderStore((s) => s.loading);
+  const fetchOrders   = useAdminOrderStore((s) => s.fetch);
+  const filterOrders  = useAdminOrderStore((s) => s.filter);
+  const updateStatus  = useAdminOrderStore((s) => s.updateStatus);
+  const confirmOrder  = useAdminOrderStore((s) => s.confirm);
+  const cancelOrder   = useAdminOrderStore((s) => s.cancel);
+  const refundOrder   = useAdminOrderStore((s) => s.refund);
+  const removeOrder   = useAdminOrderStore((s) => s.remove);
+  const processOrder  = useAdminOrderStore((s) => s.process);
+  const shipOrder     = useAdminOrderStore((s) => s.ship);
+  const deliverOrder  = useAdminOrderStore((s) => s.deliver);
 
   const [page, setPage] = useState(0);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
@@ -37,7 +48,10 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     if (filterStatus || filterUsername) {
-      filterOrders({ status: filterStatus || undefined, username: filterUsername || undefined });
+      filterOrders({
+        status: filterStatus || undefined,
+        username: filterUsername || undefined,
+      });
     } else {
       fetchOrders(page);
     }
@@ -53,15 +67,43 @@ export default function AdminOrdersPage() {
   };
 
   const handleConfirm = async (id: number) => {
-  console.log("confirmOrder type:", typeof confirmOrder);
-  console.log("confirmOrder value:", confirmOrder);
+    try {
+      await confirmOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Xác nhận thất bại");
+    }
+  };
+
+  const handleProcess = async (id: number) => {
   try {
-    await confirmOrder(id);
+    await processOrder(id);
     fetchOrders(page);
   } catch (err: any) {
-    alert(err?.response?.data?.message || "Xác nhận thất bại");
+    console.log("LỖI PROCESS:", err);           
+    console.log("response:", err?.response);     
+    console.log("message:", err?.response?.data);
+    alert(err?.response?.data?.message || "Thất bại");
   }
 };
+
+  const handleShip = async (id: number) => {
+    try {
+      await shipOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Thất bại");
+    }
+  };
+
+  const handleDeliver = async (id: number) => {
+    try {
+      await deliverOrder(id);
+      fetchOrders(page);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Thất bại");
+    }
+  };
 
   const handleCancel = async () => {
     if (!cancelId || !cancelReason.trim()) return;
@@ -115,7 +157,9 @@ export default function AdminOrdersPage() {
           onChange={(e) => setFilterStatus(e.target.value as OrderStatus | "")}
         >
           <option value="">Tất cả trạng thái</option>
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
         </select>
       </div>
 
@@ -146,7 +190,9 @@ export default function AdminOrdersPage() {
                 </td>
                 <td className={styles.tdPrice}>{formatCurrencyVND(o.finalPrice)}</td>
                 <td>
-                  <span className={`${styles.badge} ${STATUS_BADGE[o.status] || ""}`}>{o.status}</span>
+                  <span className={`${styles.badge} ${STATUS_BADGE[o.status] || ""}`}>
+                    {o.status}
+                  </span>
                 </td>
                 <td className={styles.tdMuted}>{o.paymentMethod || "—"}</td>
                 <td className={styles.tdMuted}>
@@ -160,7 +206,9 @@ export default function AdminOrdersPage() {
                       value={o.status}
                       onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
                     >
-                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
                     </select>
 
                     {o.status === "PENDING" && (
@@ -169,15 +217,39 @@ export default function AdminOrdersPage() {
                       </button>
                     )}
 
+                    {o.status === "CONFIRMED" && (
+                      <button className={styles.btnToggle} onClick={() => handleProcess(o.id)}>
+                        📦 Xử lý
+                      </button>
+                    )}
+
+                    {o.status === "PROCESSING" && (
+                      <button className={styles.btnToggle} onClick={() => handleShip(o.id)}>
+                        🚚 Giao vận
+                      </button>
+                    )}
+
+                    {o.status === "SHIPPED" && (
+                      <button className={styles.btnToggle} onClick={() => handleDeliver(o.id)}>
+                        Đang Giao Hàng
+                      </button>
+                    )}
+
                     {["PAID", "DELIVERED"].includes(o.status) && (
-                      <button className={styles.btnToggle} onClick={() => handleRefund(o.id)}>↩ Hoàn</button>
+                      <button className={styles.btnToggle} onClick={() => handleRefund(o.id)}>
+                        ↩ Hoàn
+                      </button>
                     )}
 
                     {!["CANCELLED", "REFUNDED"].includes(o.status) && (
-                      <button className={styles.btnDel} onClick={() => setCancelId(o.id)}>Hủy</button>
+                      <button className={styles.btnDel} onClick={() => setCancelId(o.id)}>
+                        Hủy
+                      </button>
                     )}
 
-                    <button className={styles.btnDel} onClick={() => handleDelete(o.id)}>Xóa</button>
+                    <button className={styles.btnDel} onClick={() => handleDelete(o.id)}>
+                      Xóa
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -187,9 +259,9 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className={styles.pagination}>
-        <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className={styles.pageBtn}>←</button>
+        <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={styles.pageBtn}>←</button>
         <span className={styles.pageInfo}>Trang {page + 1}</span>
-        <button onClick={() => setPage(p => p + 1)} className={styles.pageBtn}>→</button>
+        <button onClick={() => setPage((p) => p + 1)} className={styles.pageBtn}>→</button>
       </div>
 
       {/* CANCEL MODAL */}
