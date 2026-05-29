@@ -14,6 +14,6 @@ public class CreateReviewRequest {
     @Max(5)
     private Integer rating;
 
-    @Size(max = 100)
+    @Size(max = 1000)
     private String comment;
 }

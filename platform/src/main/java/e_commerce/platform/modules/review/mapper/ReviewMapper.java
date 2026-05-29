@@ -11,6 +11,7 @@ public class ReviewMapper {
                 .username(review.getUsername())
                 .rating(review.getRating())
                 .comment(review.getComment())
+                .helpfulCount(review.getHelpfulCount() != null ? review.getHelpfulCount() : 0)
                 .imageUrl(review.getImageUrl())
                 .createdAt(review.getCreatedAt())
                 .build();

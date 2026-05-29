@@ -13,7 +13,6 @@ export default function ProductPage() {
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [sortBy, setSortBy] = useState("default");
   const [addingId, setAddingId] = useState<number | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { products, fetchProducts, searchProducts, loading, page, totalPages } = useProductStore();
   const { categories, tree, fetchCategories, fetchTree } = useCategoryStore();
@@ -100,33 +99,10 @@ export default function ProductPage() {
               <div key={cat.id}>
                 <button
                   className={`${styles.catBtn} ${categoryId === String(cat.id) ? styles.catBtnActive : ""}`}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  onClick={() => {
-                    handleCategoryClick(cat.id, cat.name);
-                    setExpandedId(expandedId === cat.id ? null : cat.id);
-                  }}
+                  onClick={() => handleCategoryClick(cat.id, cat.name)}
                 >
-                  <span>{cat.name}</span>
-                  {cat.children && cat.children.length > 0 && (
-                    <span style={{ fontSize: "10px", marginLeft: "8px" }}>
-                      {expandedId === cat.id ? "▲" : "▼"}
-                    </span>
-                  )}
+                  {cat.name}
                 </button>
-
-                {expandedId === cat.id && cat.children && cat.children.length > 0 && (
-                  <div style={{ paddingLeft: "12px" }}>
-                    {cat.children.map((sub) => (
-                      <button
-                        key={sub.id}
-                        className={`${styles.catBtn} ${categoryId === String(sub.id) ? styles.catBtnActive : ""}`}
-                        onClick={() => handleCategoryClick(sub.id, sub.name)}
-                      >
-                        · {sub.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>

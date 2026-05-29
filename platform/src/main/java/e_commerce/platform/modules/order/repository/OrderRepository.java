@@ -36,18 +36,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // CHECK: User đã từng mua product chưa
     // ================================
     @Query("""
-        SELECT COUNT(o) > 0
-        FROM Order o
-        JOIN o.items i
-        WHERE o.userId = :userId
-          AND i.product.id = :productId
-          AND o.status = :status
-    """)
-    boolean hasPurchased(
-            @Param("userId") Long userId,
-            @Param("productId") Long productId,
-            @Param("status") OrderStatus status
-    );
+    SELECT COUNT(o) > 0
+    FROM Order o
+    JOIN o.items i
+    WHERE o.userId = :userId
+      AND i.product.id = :productId
+      AND o.status IN :statuses
+""")
+boolean hasPurchased(
+        @Param("userId") Long userId,
+        @Param("productId") Long productId,
+        @Param("statuses") java.util.List<OrderStatus> statuses
+);
 
     // ================================
     // JOB: Huỷ order quá hạn

@@ -1,4 +1,5 @@
 import { Route } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import LoginPage from '@/features/auth/pages/login/LoginPage';
 import ForgotPasswordPage from '@/features/auth/pages/forgotpassword/ForgotPasswordPage';
 import ResetPasswordPage from '@/features/auth/pages/resetpassword/ResetPasswordPage';
@@ -19,6 +20,8 @@ import OrderHistoryPage from '@/features/order/pages/history/OrderHistoryPage';
 import PaymentPage from '@/features/payment/pages/paymentpage/PaymentPage';
 import PaymentResultPage from '@/features/payment/pages/paymentresult/PaymentResultPage';
 import MainLayout from '@/components/layout/MainLayout';
+import ReviewPage from '@/features/review/pages/ReviewPage';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 //ADMIN
 import AdminGuard from '@/features/admin/component/AdminGuard';
@@ -34,7 +37,32 @@ import AdminInventoryPage from '@/features/admin/pages/AdminInventoryPage';
 function WithLayout({ children }: { children: React.ReactNode }) {
   return <MainLayout>{children}</MainLayout>;
 }
+function ReviewPageWrapper() {
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
 
+  const productId = Number(id);
+
+  // validate productId
+  if (
+    !id ||
+    Number.isNaN(productId) ||
+    productId <= 0
+  ) {
+    return (
+      <div style={{ padding: 20 }}>
+        Product không hợp lệ
+      </div>
+    );
+  }
+
+  return (
+    <ReviewPage
+      productId={productId}
+      isLoggedIn={!!user}
+    />
+  );
+}
 export function AuthRoutes() {
   return (
     <>
@@ -70,7 +98,9 @@ export function AuthRoutes() {
       <Route path="/payment/:id" element={<WithLayout><ProtectedRoute><PaymentPage /></ProtectedRoute></WithLayout>} />
       <Route path="/payment-result" element={<WithLayout><PaymentResultPage /></WithLayout>} />
 
-      {/* ✅ ADMIN - không dùng MainLayout, có sidebar riêng */}
+<Route path="/products/:id/reviews" element={<WithLayout><ReviewPageWrapper /></WithLayout>} />
+
+      {/* ADMIN - không dùng MainLayout, có sidebar riêng */}
       <Route element={<AdminGuard />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />

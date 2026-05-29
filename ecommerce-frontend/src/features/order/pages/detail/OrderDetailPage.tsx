@@ -188,15 +188,28 @@ export default function OrderDetailPage() {
       )}
 
       {currentOrder.status === "COMPLETED" && (
-        <div className={styles.card}>
-          <div className={styles.reviewBox}>
-            <p className={styles.reviewNote}>🌟 Đơn hàng hoàn tất! Hãy đánh giá sản phẩm nhé.</p>
-            <button className={styles.btnReview} onClick={() => navigate(`/orders/${currentOrder.id}/review`)}>
-              ✍️ Đánh giá sản phẩm
-            </button>
-          </div>
-        </div>
-      )}
+  <div className={styles.card}>
+    <div className={styles.reviewBox}>
+      <p className={styles.reviewNote}>
+        🌟 Đơn hàng hoàn tất! Hãy đánh giá sản phẩm nhé.
+      </p>
+
+      <div className={styles.reviewProducts}>
+        {currentOrder.items.map((item) => (
+          <button
+            key={item.productId}
+            className={styles.btnReview}
+            onClick={() =>
+              navigate(`/products/${item.productId}/reviews`)
+            }
+          >
+            ✍️ Đánh giá {item.productName}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );

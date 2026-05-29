@@ -13,6 +13,7 @@ public class ReviewResponse {
     private String username;
     private Integer rating;
     private String comment;
+    private Integer helpfulCount;
     private String imageUrl;
     private LocalDateTime createdAt;
 

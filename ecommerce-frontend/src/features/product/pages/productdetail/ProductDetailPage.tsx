@@ -148,7 +148,14 @@ export default function ProductDetailPage() {
                 ))}
               </div>
               <span className={styles.ratingNum}>{product.avgRating?.toFixed(1) || "Chưa có"}</span>
-              {product.reviewCount ? <span className={styles.reviewCount}>({product.reviewCount} đánh giá)</span> : null}
+             {product.reviewCount ? (
+  <Link 
+    to={`/products/${product.id}/reviews`} 
+    className={styles.reviewCount}
+  >
+    ({product.reviewCount} đánh giá)
+  </Link>
+) : null}
             </div>
 
             {/* PRICE */}

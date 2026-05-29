@@ -58,4 +58,11 @@ public ApiResponse<ReviewSummaryResponse> getSummary(@PathVariable Long productI
             reviewService.getSummary(productId)
     );
 }
+
+@PostMapping("/{id}/like")
+public ApiResponse<?> like(@PathVariable Long id) {
+    reviewService.likeReview(id);
+    return new ApiResponse<>(true, "OK", null);
+}
+
 }

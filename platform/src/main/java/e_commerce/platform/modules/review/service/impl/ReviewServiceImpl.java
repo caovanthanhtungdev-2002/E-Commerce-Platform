@@ -43,11 +43,15 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         //check đã mua (PAID)
-        boolean hasPurchased = orderRepository.hasPurchased(
-                user.getId(),
-                request.getProductId(),
-                OrderStatus.PAID
-        );
+boolean hasPurchased = orderRepository.hasPurchased(
+    user.getId(),
+    request.getProductId(),
+    java.util.List.of(
+        OrderStatus.DELIVERED,
+        OrderStatus.PAID,
+        OrderStatus.COMPLETED
+    )
+);
 
         if (!hasPurchased) {
             throw new BadRequestException("Bạn chưa mua sản phẩm này");
@@ -94,4 +98,17 @@ public Page<ReviewResponse> getByProduct(Long productId, Pageable pageable) {
             .findByProductIdOrderByCreatedAtDesc(productId, pageable)
             .map(ReviewMapper::toResponse);
 }
+
+@Override
+@Transactional
+public void likeReview(Long reviewId) {
+    Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new BadRequestException("Review not found"));
+    review.setHelpfulCount(
+        review.getHelpfulCount() == null ? 1 : review.getHelpfulCount() + 1
+    );
+    reviewRepository.save(review);
+}
+
+
 }

@@ -15,4 +15,6 @@ public interface ReviewService {
     ReviewSummaryResponse getSummary(Long productId);
 
     Page<ReviewResponse> getByProduct(Long productId, Pageable pageable);
+
+    void likeReview(Long reviewId);
 }

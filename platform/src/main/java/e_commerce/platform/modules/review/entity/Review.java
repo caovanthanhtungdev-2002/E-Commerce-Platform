@@ -37,6 +37,10 @@ public class Review {
     @Size(max = 1000)
     private String comment;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "int default 0")
+    private Integer helpfulCount = 0;
+
     private String imageUrl;
 
     private LocalDateTime createdAt;

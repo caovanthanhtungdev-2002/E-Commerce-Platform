@@ -25,6 +25,7 @@ import e_commerce.platform.modules.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import e_commerce.platform.modules.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,7 +40,8 @@ public class OrderServiceImpl implements OrderService {
     private final CouponService couponService;
     private final ProductRepository productRepository;
     private final InventoryService inventoryService;
-    private final OrderNotificationService orderNotificationService; //
+    private final OrderNotificationService orderNotificationService; 
+    private final UserRepository userRepository;
 
     // =========================================================
     // TẠO ĐƠN HÀNG
@@ -49,6 +51,11 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
         List<CartItemResponse> selectedItems;
+
+       
+Long userId = userRepository.findByUsername(username)
+        .orElseThrow(() -> new BadRequestException("User not found"))
+        .getId();
 
         boolean isBuyNow = request.getBuyNowItems() != null
                 && !request.getBuyNowItems().isEmpty();
@@ -126,6 +133,7 @@ public class OrderServiceImpl implements OrderService {
         ));
 
         Order order = Order.builder()
+                .userId(userId)
                 .username(username)
                 .totalPrice(totalPrice)
                 .discount(discount)
