@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAdminOrderStore } from "../store/adminStores";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import type { OrderStatus } from "../types/adminTypes";
@@ -31,6 +32,8 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function AdminOrdersPage() {
+  const navigate = useNavigate();
+
   const orders        = useAdminOrderStore((s) => s.orders);
   const loading       = useAdminOrderStore((s) => s.loading);
   const fetchOrders   = useAdminOrderStore((s) => s.fetch);
@@ -67,7 +70,6 @@ export default function AdminOrdersPage() {
       await updateStatus(id, status);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI UPDATE STATUS:", err?.response?.data);
       alert(err?.response?.data?.message || "Cập nhật thất bại");
     }
   };
@@ -77,7 +79,6 @@ export default function AdminOrdersPage() {
       await confirmOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI CONFIRM:", err?.response?.data);
       alert(err?.response?.data?.message || "Xác nhận thất bại");
     }
   };
@@ -87,7 +88,6 @@ export default function AdminOrdersPage() {
       await processOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI PROCESS:", err?.response?.data);
       alert(err?.response?.data?.message || "Xử lý thất bại");
     }
   };
@@ -97,7 +97,6 @@ export default function AdminOrdersPage() {
       await shipOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI SHIP:", err?.response?.data);
       alert(err?.response?.data?.message || "Giao vận thất bại");
     }
   };
@@ -107,7 +106,6 @@ export default function AdminOrdersPage() {
       await deliverOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI DELIVER:", err?.response?.data);
       alert(err?.response?.data?.message || "Cập nhật giao hàng thất bại");
     }
   };
@@ -117,7 +115,6 @@ export default function AdminOrdersPage() {
       await completeOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI COMPLETE:", err?.response?.data);
       alert(err?.response?.data?.message || "Hoàn thành thất bại");
     }
   };
@@ -127,7 +124,6 @@ export default function AdminOrdersPage() {
       await refundOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI REFUND:", err?.response?.data);
       alert(err?.response?.data?.message || "Hoàn tiền thất bại");
     }
   };
@@ -140,7 +136,6 @@ export default function AdminOrdersPage() {
       setCancelReason("");
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI CANCEL:", err?.response?.data);
       alert(err?.response?.data?.message || "Hủy đơn thất bại");
     }
   };
@@ -150,7 +145,6 @@ export default function AdminOrdersPage() {
       await removeOrder(id);
       fetchOrders(page);
     } catch (err: any) {
-      console.log("LỖI DELETE:", err?.response?.data);
       alert(err?.response?.data?.message || "Xóa thất bại");
     }
   };
@@ -231,55 +225,72 @@ export default function AdminOrdersPage() {
                       ))}
                     </select>
 
+                    {/* PENDING: Xác nhận + Hủy */}
                     {o.status === "PENDING" && (
                       <button className={styles.btnToggle} onClick={() => handleConfirm(o.id)}>
                         ✅ Xác nhận
                       </button>
                     )}
 
+                    {/* CONFIRMED: Xử lý + Hủy */}
                     {o.status === "CONFIRMED" && (
                       <button className={styles.btnToggle} onClick={() => handleProcess(o.id)}>
                         📦 Xử lý
                       </button>
                     )}
 
+                    {/* PROCESSING: Giao hàng (không có Hủy) */}
                     {o.status === "PROCESSING" && (
                       <button className={styles.btnToggle} onClick={() => handleShip(o.id)}>
-                        Đang trên đường giao 
+                        🚚 Giao hàng
                       </button>
                     )}
 
-                    {o.status === "SHIPPED" && (
-                      <button className={styles.btnToggle} onClick={() => handleDeliver(o.id)}>
-                        Đã giao hàng
-                      </button>
-                    )}
+                 
+                    
 
+                    {/* DELIVERED: Hoàn thành + Xem vận đơn + Hoàn */}
                     {o.status === "DELIVERED" && (
                       <button
                         className={styles.btnToggle}
                         style={{ whiteSpace: "nowrap" }}
                         onClick={() => handleComplete(o.id)}
                       >
-                        Hoàn thành
+                        🏁 Hoàn thành
                       </button>
                     )}
 
+                    {/* Xem vận đơn: SHIPPED, DELIVERED, COMPLETED */}
+                    {["SHIPPED", "DELIVERED", "COMPLETED"].includes(o.status) && (
+                      <button
+                        className={styles.btnToggle}
+                        style={{ whiteSpace: "nowrap" }}
+                        onClick={() => navigate(`/admin/shipments?search=${o.id}`)}
+                      >
+                        📦 Xem vận đơn
+                      </button>
+                    )}
+
+                    {/* Hoàn tiền: PAID, DELIVERED, COMPLETED */}
                     {["PAID", "DELIVERED", "COMPLETED"].includes(o.status) && (
                       <button className={styles.btnToggle} onClick={() => handleRefund(o.id)}>
                         ↩ Hoàn
                       </button>
                     )}
 
-                    {!["CANCELLED", "REFUNDED", "COMPLETED", "RETURNED"].includes(o.status) && (
+                    {/* Hủy: CHỈ PENDING và CONFIRMED */}
+                    {["PENDING", "CONFIRMED"].includes(o.status) && (
                       <button className={styles.btnDel} onClick={() => setCancelId(o.id)}>
                         Hủy
                       </button>
                     )}
 
-                    <button className={styles.btnDel} onClick={() => handleDelete(o.id)}>
-                      Xóa
-                    </button>
+                    {/* Xóa: CHỈ CANCELLED và REFUNDED */}
+                    {["CANCELLED", "REFUNDED"].includes(o.status) && (
+                      <button className={styles.btnDel} onClick={() => handleDelete(o.id)}>
+                        Xóa
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

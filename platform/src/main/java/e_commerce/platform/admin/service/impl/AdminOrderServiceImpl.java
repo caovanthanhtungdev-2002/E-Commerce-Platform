@@ -11,6 +11,10 @@ import e_commerce.platform.modules.order.entity.OrderItem;
 import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.order.service.OrderNotificationService;
+import e_commerce.platform.modules.shipping.dto.request.CreateShipmentRequest;
+import e_commerce.platform.modules.shipping.entity.ShippingAddress;
+import e_commerce.platform.modules.shipping.repository.ShippingAddressRepository;
+import e_commerce.platform.modules.shipping.service.ShipmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -27,10 +32,12 @@ import java.util.List;
 @Transactional
 public class AdminOrderServiceImpl implements AdminOrderService {
 
-    private final OrderRepository orderRepository;
-    private final OrderNotificationService orderNotificationService; 
-    private final CartService cartService;                           
-    private final InventoryService inventoryService;                 
+    private final OrderRepository             orderRepository;
+    private final OrderNotificationService    orderNotificationService;
+    private final CartService                 cartService;
+    private final InventoryService            inventoryService;
+    private final ShipmentService             shipmentService;
+    private final ShippingAddressRepository   shippingAddressRepository;
 
     @Override
     public List<AdminOrderResponse> getOrders(int page, int size) {
@@ -49,7 +56,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     public List<AdminOrderResponse> filterOrders(OrderStatus status, String username,
-                                                 LocalDateTime from, LocalDateTime to) {
+                                                  LocalDateTime from, LocalDateTime to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new BadRequestException("'from' date must be before 'to' date");
         }
@@ -67,7 +74,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         orderRepository.save(order);
     }
 
-    // ================= CONFIRM ĐƠN =================
+    // ================= CONFIRM =================
     @Override
     public void confirmOrder(Long orderId) {
         Order order = findOrderById(orderId);
@@ -82,17 +89,14 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
 
-        // Trừ stock thật
         order.getItems().forEach(item ->
                 inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
         );
 
-        // Xóa cart
         order.getItems().forEach(item ->
                 cartService.removeFromCart(order.getUsername(), item.getProduct().getId())
         );
 
-        //Notify WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
@@ -114,40 +118,39 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
-        //Notify WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
     }
 
     // ================= REFUND =================
-   @Override
-public void refundOrder(Long orderId) {
-    Order order = findOrderById(orderId);
+    @Override
+    public void refundOrder(Long orderId) {
+        Order order = findOrderById(orderId);
 
-    if (order.getStatus() != OrderStatus.PAID
-            && order.getStatus() != OrderStatus.DELIVERED
-            && order.getStatus() != OrderStatus.COMPLETED) {
-        throw new BadRequestException(
-                "Only PAID, DELIVERED or COMPLETED orders can be refunded. Current status: "
-                + order.getStatus());
-    }
-
-    // Kiểm tra 7 ngày nếu là COMPLETED
-    if (order.getStatus() == OrderStatus.COMPLETED) {
-        LocalDateTime deadline = order.getUpdatedAt().plusDays(7);
-        if (LocalDateTime.now().isAfter(deadline)) {
-            throw new BadRequestException("Đã quá 7 ngày kể từ khi hoàn tất đơn hàng, không thể hoàn tiền.");
+        if (order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.DELIVERED
+                && order.getStatus() != OrderStatus.COMPLETED) {
+            throw new BadRequestException(
+                    "Only PAID, DELIVERED or COMPLETED orders can be refunded. Current status: "
+                    + order.getStatus());
         }
+
+        if (order.getStatus() == OrderStatus.COMPLETED) {
+            LocalDateTime deadline = order.getUpdatedAt().plusDays(7);
+            if (LocalDateTime.now().isAfter(deadline)) {
+                throw new BadRequestException(
+                    "Đã quá 7 ngày kể từ khi hoàn tất đơn hàng, không thể hoàn tiền.");
+            }
+        }
+
+        order.setStatus(OrderStatus.REFUNDED);
+        orderRepository.save(order);
+
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
     }
-
-    order.setStatus(OrderStatus.REFUNDED);
-    orderRepository.save(order);
-
-    orderNotificationService.notifyOrderUpdated(
-            order.getUsername(), order.getId(), order.getStatus().name()
-    );
-}
 
     // ================= FORCE COMPLETE =================
     @Override
@@ -164,7 +167,6 @@ public void refundOrder(Long orderId) {
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
-        // Notify WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
@@ -184,47 +186,72 @@ public void refundOrder(Long orderId) {
 
         orderRepository.deleteById(orderId);
     }
-// ================= PROCESS =================
-@Override
-public void processOrder(Long orderId) {
-    Order order = findOrderById(orderId);
-    if (order.getStatus() != OrderStatus.CONFIRMED) {
-        throw new BadRequestException(
-            "Only CONFIRMED orders can be processed. Current: " + order.getStatus());
-    }
-    order.setStatus(OrderStatus.PROCESSING);
-    orderRepository.save(order);
-    orderNotificationService.notifyOrderUpdated(
-        order.getUsername(), order.getId(), order.getStatus().name());
-}
 
-// ================= SHIP =================
-@Override
-public void shipOrder(Long orderId) {
-    Order order = findOrderById(orderId);
-    if (order.getStatus() != OrderStatus.PROCESSING) {
-        throw new BadRequestException(
-            "Only PROCESSING orders can be shipped. Current: " + order.getStatus());
+    // ================= PROCESS =================
+    @Override
+    public void processOrder(Long orderId) {
+        Order order = findOrderById(orderId);
+        if (order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new BadRequestException(
+                "Only CONFIRMED orders can be processed. Current: " + order.getStatus());
+        }
+        order.setStatus(OrderStatus.PROCESSING);
+        orderRepository.save(order);
+        orderNotificationService.notifyOrderUpdated(
+            order.getUsername(), order.getId(), order.getStatus().name());
     }
-    order.setStatus(OrderStatus.SHIPPED);
-    orderRepository.save(order);
-    orderNotificationService.notifyOrderUpdated(
-        order.getUsername(), order.getId(), order.getStatus().name());
-}
 
-// ================= DELIVER =================
-@Override
-public void deliverOrder(Long orderId) {
-    Order order = findOrderById(orderId);
-    if (order.getStatus() != OrderStatus.SHIPPED) {
-        throw new BadRequestException(
-            "Only SHIPPED orders can be delivered. Current: " + order.getStatus());
+    // ================= SHIP =================
+    @Override
+    public void shipOrder(Long orderId) {
+        Order order = findOrderById(orderId);
+        if (order.getStatus() != OrderStatus.PROCESSING) {
+            throw new BadRequestException(
+                "Only PROCESSING orders can be shipped. Current: " + order.getStatus());
+        }
+        order.setStatus(OrderStatus.SHIPPED);
+        orderRepository.save(order);
+
+        // Tạo ShippingAddress từ thông tin order
+        ShippingAddress address = ShippingAddress.builder()
+            .userId(String.valueOf(order.getUserId()))
+            .receiverName(order.getReceiverName() != null
+                ? order.getReceiverName() : order.getUsername())
+            .receiverPhone(order.getPhone() != null ? order.getPhone() : "")
+            .addressLine(order.getAddress() != null ? order.getAddress() : "")
+            .country("Vietnam")
+            .note("Tự động tạo từ đơn hàng #" + orderId)
+            .build();
+        ShippingAddress savedAddress = shippingAddressRepository.save(address);
+
+        // Tạo Shipment record — admin cập nhật carrier/tracking thật sau
+        CreateShipmentRequest req = CreateShipmentRequest.builder()
+            .orderId(String.valueOf(orderId))
+            .carrier("Chưa xác định")
+            .trackingNumber("ORD-" + orderId + "-" + System.currentTimeMillis())
+            .shippingFee(BigDecimal.ZERO)
+            .shippingAddressId(savedAddress.getId())
+            .note("Tạo tự động từ đơn hàng #" + orderId)
+            .build();
+        shipmentService.create(req);
+
+        orderNotificationService.notifyOrderUpdated(
+            order.getUsername(), order.getId(), order.getStatus().name());
     }
-    order.setStatus(OrderStatus.DELIVERED);
-    orderRepository.save(order);
-    orderNotificationService.notifyOrderUpdated(
-        order.getUsername(), order.getId(), order.getStatus().name());
-}
+
+    // ================= DELIVER =================
+    @Override
+    public void deliverOrder(Long orderId) {
+        Order order = findOrderById(orderId);
+        if (order.getStatus() != OrderStatus.SHIPPED) {
+            throw new BadRequestException(
+                "Only SHIPPED orders can be delivered. Current: " + order.getStatus());
+        }
+        order.setStatus(OrderStatus.DELIVERED);
+        orderRepository.save(order);
+        orderNotificationService.notifyOrderUpdated(
+            order.getUsername(), order.getId(), order.getStatus().name());
+    }
 
     // ================= PRIVATE =================
     private Order findOrderById(Long orderId) {

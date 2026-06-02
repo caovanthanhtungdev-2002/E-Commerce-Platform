@@ -7,6 +7,11 @@ const axiosInstance = axios.create({
 
 // Attach token nếu có
 axiosInstance.interceptors.request.use((config) => {
+  // Nếu đã có Authorization rồi thì không ghi đè
+  if (config.headers?.Authorization) {
+    return config;
+  }
+  
   const token = useAuthStore.getState().accessToken;
 
   if (token) {

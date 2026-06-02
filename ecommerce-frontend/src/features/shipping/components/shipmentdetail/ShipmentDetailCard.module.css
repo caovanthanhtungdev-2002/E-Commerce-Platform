@@ -1,0 +1,109 @@
+/* components/shipping/ShipmentDetailCard.module.css */
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skeleton {
+  height: 320px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 2px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 16px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.label {
+  flex: 0 0 160px;
+  color: #6b7280;
+}
+
+.value {
+  color: #111827;
+  font-weight: 500;
+}
+
+.tracking {
+  font-family: monospace;
+  font-size: 13px;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.section {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 16px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
+}
+
+.addrName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 2px;
+}
+
+.addrLine {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.addrNote {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0;
+  font-style: italic;
+}

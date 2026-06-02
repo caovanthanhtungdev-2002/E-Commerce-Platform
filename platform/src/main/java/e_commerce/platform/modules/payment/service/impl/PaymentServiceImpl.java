@@ -13,6 +13,7 @@ import e_commerce.platform.modules.inventory.service.InventoryService;
 import e_commerce.platform.modules.order.entity.Order;
 import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
+import e_commerce.platform.modules.order.service.OrderNotificationService;
 import e_commerce.platform.modules.payment.dto.response.CreatePaymentResponse;
 import e_commerce.platform.modules.payment.entity.Payment;
 import e_commerce.platform.modules.payment.enums.PaymentMethod;
@@ -20,6 +21,7 @@ import e_commerce.platform.modules.payment.enums.PaymentStatus;
 import e_commerce.platform.modules.payment.provider.impl.VNPayProvider;
 import e_commerce.platform.modules.payment.repository.PaymentRepository;
 import e_commerce.platform.modules.payment.service.PaymentService;
+import e_commerce.platform.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 @Slf4j
@@ -32,6 +34,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderRepository orderRepository;
     private final InventoryService inventoryService;
     private final VNPayProvider vnPayProvider;
+    private final OrderNotificationService orderNotificationService;
+private final UserRepository userRepository; // để lấy username từ userId
 
     // ================= CREATE =================
     @Override
@@ -40,6 +44,11 @@ public CreatePaymentResponse createPayment(Long orderId) {
     Order order = orderRepository.findById(orderId)
     
             .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+
+            // Không tạo payment link cho COD
+    if ("COD".equalsIgnoreCase(order.getPaymentMethod())) {
+        throw new BadRequestException("Đơn COD không cần tạo link thanh toán");
+    }
 
     if (order.getStatus() != OrderStatus.PENDING) {
         throw new BadRequestException("Order is not in PENDING state. Current: " + order.getStatus());
@@ -136,36 +145,74 @@ public CreatePaymentResponse createPayment(Long orderId) {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + payment.getOrderId()));
 
         if ("00".equals(responseCode)) {
-            // ===== THANH TOÁN THÀNH CÔNG =====
-            payment.setStatus(PaymentStatus.SUCCESS);
-            payment.setTransactionId(transactionId);
-            order.setStatus(OrderStatus.PAID);
-            order.setPaidAt(LocalDateTime.now());
+    payment.setStatus(PaymentStatus.SUCCESS);
+    payment.setTransactionId(transactionId);
+    order.setStatus(OrderStatus.PAID);
+    order.setPaidAt(LocalDateTime.now());
 
-            // Confirm inventory (trừ stock thật sự)
-            order.getItems().forEach(item ->
-                    inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
-            );
+    order.getItems().forEach(item ->
+        inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
+    );
 
-            log.info("[PAYMENT] SUCCESS: paymentId={}, orderId={}, transactionId={}",
-                    payment.getId(), order.getId(), transactionId);
+    log.info("[PAYMENT] SUCCESS: paymentId={}, orderId={}, transactionId={}",
+        payment.getId(), order.getId(), transactionId);
 
-        } else {
-            // ===== THANH TOÁN THẤT BẠI =====
-            payment.setStatus(PaymentStatus.FAILED);
-            payment.setTransactionId(transactionId);
+    // Notify SUCCESS
+    orderNotificationService.notifyPaymentResult(
+        order.getUsername(), order.getId(), true, transactionId);
+    orderNotificationService.notifyOrderUpdated(
+        order.getUsername(), order.getId(), OrderStatus.PAID.name());
 
-            // KHÔNG huỷ order — giữ PENDING để user có thể retry thanh toán
-            // KHÔNG releaseStock ngay — chờ scheduler hoặc user cancel thủ công
+} else {
+    payment.setStatus(PaymentStatus.FAILED);
+    payment.setTransactionId(transactionId);
 
-            log.info("[PAYMENT] FAILED: paymentId={}, orderId={}, responseCode={}",
-                    payment.getId(), order.getId(), responseCode);
-        }
+    log.info("[PAYMENT] FAILED: paymentId={}, orderId={}, responseCode={}",
+        payment.getId(), order.getId(), responseCode);
 
-        paymentRepository.save(payment);
-        orderRepository.save(order);
+    //Notify FAILED
+    orderNotificationService.notifyPaymentResult(
+        order.getUsername(), order.getId(), false, transactionId);
+}
 
-        // Trả về orderId thật để frontend navigate đúng trang
-        return String.valueOf(order.getId());
+paymentRepository.save(payment);
+orderRepository.save(order);
+
+return String.valueOf(order.getId());
     }
+    // ================= COD =================
+@Override
+public void confirmCOD(Long orderId) {
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+
+    // Chỉ xử lý đơn COD
+    if (!"COD".equalsIgnoreCase(order.getPaymentMethod())) {
+        throw new BadRequestException("Đơn hàng này không phải COD");
+    }
+
+    // Chỉ cho phép khi đang DELIVERED
+    if (order.getStatus() != OrderStatus.DELIVERED) {
+        throw new BadRequestException("Chỉ xác nhận COD khi đơn đang DELIVERED");
+    }
+
+    // Tạo Payment record cho COD
+    Payment payment = Payment.builder()
+            .orderId(orderId)
+            .amount(order.getFinalPrice())
+            .status(PaymentStatus.COD_COLLECTED)
+            .provider(PaymentMethod.COD)
+            .createdAt(LocalDateTime.now())
+            .build();
+
+    paymentRepository.save(payment);
+
+    // Cập nhật Order
+    order.setStatus(OrderStatus.COMPLETED);
+    order.setPaidAt(LocalDateTime.now());
+    orderRepository.save(order);
+
+    log.info("[COD] Confirmed payment for orderId={}", orderId);
+}
+
 }

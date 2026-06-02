@@ -1,5 +1,7 @@
 package e_commerce.platform.modules.shipping.service.impl;
 
+import e_commerce.platform.modules.order.enums.OrderStatus;
+import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.shipping.dto.request.CreateReturnRequest;
 import e_commerce.platform.modules.shipping.dto.request.UpdateReturnStatusRequest;
 import e_commerce.platform.modules.shipping.dto.response.ReturnShipmentResponse;
@@ -30,6 +32,7 @@ public class ReturnShipmentServiceImpl implements ReturnShipmentService {
 
     private final ReturnShipmentRepository returnRepo;
     private final ShippingMapper           mapper;
+    private final OrderRepository orderRepository;
 
     private static final Map<ReturnStatus, Set<ReturnStatus>> TRANSITIONS = Map.of(
         ReturnStatus.PENDING,    Set.of(ReturnStatus.APPROVED, ReturnStatus.REJECTED),
@@ -87,24 +90,31 @@ public class ReturnShipmentServiceImpl implements ReturnShipmentService {
     }
 
     @Override
-    @Transactional
-    public ReturnShipmentResponse updateStatus(String id, UpdateReturnStatusRequest req) {
-        ReturnShipment r = findOrThrow(id);
-        ReturnStatus newStatus = req.getStatus();
+@Transactional
+public ReturnShipmentResponse updateStatus(String id, UpdateReturnStatusRequest req) {
+    ReturnShipment r = findOrThrow(id);
+    ReturnStatus newStatus = req.getStatus();
 
-        Set<ReturnStatus> allowed = TRANSITIONS.getOrDefault(r.getStatus(), Set.of());
-        if (!allowed.contains(newStatus)) {
-            throw new BusinessException(String.format(
-                "Cannot transition return from %s to %s", r.getStatus(), newStatus));
-        }
-
-        r.setStatus(newStatus);
-        if (req.getNote() != null) {
-            r.setNote(req.getNote());
-        }
-
-        return mapper.toReturnResponse(returnRepo.save(r));
+    Set<ReturnStatus> allowed = TRANSITIONS.getOrDefault(r.getStatus(), Set.of());
+    if (!allowed.contains(newStatus)) {
+        throw new BusinessException(String.format(
+            "Cannot transition return from %s to %s", r.getStatus(), newStatus));
     }
+
+    r.setStatus(newStatus);
+    if (req.getNote() != null) r.setNote(req.getNote());
+    returnRepo.save(r);
+
+    // Return COMPLETED → Order RETURNED
+    if (newStatus == ReturnStatus.COMPLETED) {
+        orderRepository.findById(Long.parseLong(r.getOrderId())).ifPresent(order -> {
+            order.setStatus(OrderStatus.RETURNED);
+            orderRepository.save(order);
+        });
+    }
+
+    return mapper.toReturnResponse(r);
+}
 
     // ---- Helpers ----
 

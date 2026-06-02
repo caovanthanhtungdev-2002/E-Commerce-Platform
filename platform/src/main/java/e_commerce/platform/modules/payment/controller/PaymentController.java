@@ -6,6 +6,8 @@ import e_commerce.platform.modules.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,6 +16,14 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
+
+    // POST /api/payments/cod/{orderId}/confirm
+@PostMapping("/cod/{orderId}/confirm")
+@PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+public ResponseEntity<ApiResponse<Void>> confirmCOD(@PathVariable Long orderId) {
+    paymentService.confirmCOD(orderId);
+    return ResponseEntity.ok(ApiResponse.success("COD confirmed", null)); 
+}
 
     @PostMapping("/{orderId}")
     public ApiResponse<CreatePaymentResponse> create(@PathVariable Long orderId) {
@@ -31,5 +41,7 @@ public String vnpayCallback(@RequestParam Map<String, String> params) {
 
     return paymentService.handleVNPayCallback(params);
 }
+
+
     
 }

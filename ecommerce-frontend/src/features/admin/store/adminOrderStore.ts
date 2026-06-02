@@ -20,6 +20,7 @@ interface AdminOrderState {
   process: (id: number) => Promise<void>;
   ship: (id: number) => Promise<void>;
   deliver: (id: number) => Promise<void>;
+  complete: (id: number) => Promise<void>; // ← thêm
 }
 
 export const useAdminOrderStore = create<AdminOrderState>((set) => ({
@@ -67,15 +68,18 @@ export const useAdminOrderStore = create<AdminOrderState>((set) => ({
   },
 
   process: async (id) => {
-  await adminOrderService.process(id);
-},
+    await adminOrderService.process(id);
+  },
 
-ship: async (id) => {
-  await adminOrderService.ship(id);
-},
+  ship: async (id) => {
+    await adminOrderService.ship(id);
+  },
 
-deliver: async (id) => {
-  await adminOrderService.deliver(id);
-},
+  deliver: async (id) => {
+    await adminOrderService.deliver(id);
+  },
 
+  complete: async (id) => { // ← thêm
+    await adminOrderService.complete(id);
+  },
 }));

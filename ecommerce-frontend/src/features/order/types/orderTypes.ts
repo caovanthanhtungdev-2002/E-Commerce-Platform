@@ -25,6 +25,7 @@ export interface BuyNowItem {
 
 export interface Order {
   id: number;
+  username: string;        
   totalPrice: number;
   finalPrice: number;
   discount: number;
@@ -35,6 +36,8 @@ export interface Order {
   receiverName: string;
   phone: string;
   address: string;
+  createdAt?: string;        
+  paidAt?: string;          
 }
 
 export interface CreateOrderRequest {

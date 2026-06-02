@@ -1,5 +1,20 @@
 package e_commerce.platform.modules.shipping.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import e_commerce.platform.exception.BusinessException;
+import e_commerce.platform.exception.ResourceNotFoundException;
+import e_commerce.platform.modules.order.enums.OrderStatus;
+import e_commerce.platform.modules.order.repository.OrderRepository;
+import e_commerce.platform.modules.order.service.OrderNotificationService;
 import e_commerce.platform.modules.shipping.dto.request.AddTrackingEventRequest;
 import e_commerce.platform.modules.shipping.dto.request.CreateShipmentRequest;
 import e_commerce.platform.modules.shipping.dto.request.UpdateShipmentStatusRequest;
@@ -9,8 +24,6 @@ import e_commerce.platform.modules.shipping.entity.Shipment;
 import e_commerce.platform.modules.shipping.entity.ShippingAddress;
 import e_commerce.platform.modules.shipping.entity.TrackingEvent;
 import e_commerce.platform.modules.shipping.enums.ShipmentStatus;
-import e_commerce.platform.exception.BusinessException;
-import e_commerce.platform.exception.ResourceNotFoundException;
 import e_commerce.platform.modules.shipping.mapper.ShippingMapper;
 import e_commerce.platform.modules.shipping.repository.ShipmentRepository;
 import e_commerce.platform.modules.shipping.repository.ShippingAddressRepository;
@@ -18,15 +31,6 @@ import e_commerce.platform.modules.shipping.repository.TrackingEventRepository;
 import e_commerce.platform.modules.shipping.service.ShipmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +41,8 @@ public class ShipmentServiceImpl implements ShipmentService {
     private final TrackingEventRepository   trackingRepo;
     private final ShippingAddressRepository addressRepo;
     private final ShippingMapper            mapper;
+    private final OrderRepository orderRepository;
+    private final OrderNotificationService orderNotificationService;
 
     private static final Map<ShipmentStatus, Set<ShipmentStatus>> TRANSITIONS = Map.of(
         ShipmentStatus.PENDING,   Set.of(ShipmentStatus.CONFIRMED, ShipmentStatus.CANCELLED),
@@ -104,30 +110,63 @@ public class ShipmentServiceImpl implements ShipmentService {
     }
 
     @Override
-    @Transactional
-    public ShipmentResponse updateStatus(String id, UpdateShipmentStatusRequest req) {
-        Shipment shipment = findOrThrow(id);
-        ShipmentStatus newStatus = req.getStatus();
+@Transactional
+public ShipmentResponse updateStatus(String id, UpdateShipmentStatusRequest req) {
+    Shipment shipment = findOrThrow(id);
+    ShipmentStatus newStatus = req.getStatus();
 
-        Set<ShipmentStatus> allowed = TRANSITIONS.getOrDefault(
-            shipment.getStatus(), Set.of());
-
-        if (!allowed.contains(newStatus)) {
-            throw new BusinessException(String.format(
-                "Cannot transition from %s to %s",
-                shipment.getStatus(), newStatus));
-        }
-
-        shipment.setStatus(newStatus);
-        if (newStatus == ShipmentStatus.DELIVERED) {
-            shipment.setDeliveredAt(LocalDateTime.now());
-        }
-        if (req.getNote() != null) {
-            shipment.setNote(req.getNote());
-        }
-
-        return mapper.toShipmentResponse(shipmentRepo.save(shipment), false);
+    Set<ShipmentStatus> allowed = TRANSITIONS.getOrDefault(shipment.getStatus(), Set.of());
+    if (!allowed.contains(newStatus)) {
+        throw new BusinessException(String.format(
+            "Cannot transition from %s to %s", shipment.getStatus(), newStatus));
     }
+
+    shipment.setStatus(newStatus);
+    if (newStatus == ShipmentStatus.DELIVERED) {
+        shipment.setDeliveredAt(LocalDateTime.now());
+    }
+    if (req.getNote() != null) shipment.setNote(req.getNote());
+    shipmentRepo.save(shipment);
+
+    // Đồng bộ Order + gửi notification trong cùng 1 lần query
+    syncOrderStatusAndNotify(shipment.getOrderId(), newStatus, shipment.getTrackingNumber());
+
+    return mapper.toShipmentResponse(shipment, false);
+}
+
+private void syncOrderStatusAndNotify(String orderId, ShipmentStatus shipmentStatus,
+                                       String trackingNumber) {
+    try {
+        Long orderIdLong = Long.parseLong(orderId);
+        orderRepository.findById(orderIdLong).ifPresent(order -> {
+
+            OrderStatus newOrderStatus = switch (shipmentStatus) {
+                case PICKING_UP        -> OrderStatus.PROCESSING;
+                case IN_TRANSIT,
+                     OUT_FOR_DELIVERY  -> OrderStatus.SHIPPED;
+                case DELIVERED         -> OrderStatus.DELIVERED;
+                case RETURNED          -> OrderStatus.RETURNED;
+                case CANCELLED         -> OrderStatus.CANCELLED;
+                default                -> null;
+            };
+
+            if (newOrderStatus != null) {
+                order.setStatus(newOrderStatus);
+                orderRepository.save(order);
+            }
+
+            // Notify luôn trong cùng block, dùng order đã có sẵn
+            orderNotificationService.notifyShipmentUpdated(
+                order.getUsername(),
+                orderId,
+                shipmentStatus.name(),
+                trackingNumber
+            );
+        });
+    } catch (NumberFormatException e) {
+        log.error("[SHIPMENT] Invalid orderId format: {}", orderId);
+    }
+}
 
     @Override
     @Transactional

@@ -22,10 +22,10 @@ import e_commerce.platform.modules.order.service.OrderNotificationService;
 import e_commerce.platform.modules.order.service.OrderService;
 import e_commerce.platform.modules.product.entity.Product;
 import e_commerce.platform.modules.product.repository.ProductRepository;
+import e_commerce.platform.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import e_commerce.platform.modules.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,14 +34,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    private final OrderRepository orderRepository;
-    private final CartService cartService;
-    private final OrderProducer orderProducer;
-    private final CouponService couponService;
-    private final ProductRepository productRepository;
-    private final InventoryService inventoryService;
-    private final OrderNotificationService orderNotificationService; 
-    private final UserRepository userRepository;
+    private final OrderRepository          orderRepository;
+    private final CartService              cartService;
+    private final OrderProducer            orderProducer;
+    private final CouponService            couponService;
+    private final ProductRepository        productRepository;
+    private final InventoryService         inventoryService;
+    private final OrderNotificationService orderNotificationService;
+    private final UserRepository           userRepository;
 
     // =========================================================
     // TẠO ĐƠN HÀNG
@@ -50,13 +50,11 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse createOrder(String username, CreateOrderRequest request) {
 
+        Long userId = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadRequestException("User not found"))
+                .getId();
+
         List<CartItemResponse> selectedItems;
-
-       
-Long userId = userRepository.findByUsername(username)
-        .orElseThrow(() -> new BadRequestException("User not found"))
-        .getId();
-
         boolean isBuyNow = request.getBuyNowItems() != null
                 && !request.getBuyNowItems().isEmpty();
 
@@ -64,7 +62,6 @@ Long userId = userRepository.findByUsername(username)
             selectedItems = request.getBuyNowItems().stream().map(item -> {
                 Product product = productRepository.findById(item.getProductId())
                         .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
                 return CartItemResponse.builder()
                         .productId(product.getId())
                         .productName(product.getName())
@@ -75,11 +72,9 @@ Long userId = userRepository.findByUsername(username)
             }).toList();
         } else {
             CartResponse cart = cartService.getCart(username);
-
             if (cart.getItems().isEmpty()) {
                 throw new BadRequestException("Cart is empty");
             }
-
             if (request.getSelectedProductIds() != null
                     && !request.getSelectedProductIds().isEmpty()) {
                 selectedItems = cart.getItems().stream()
@@ -88,7 +83,6 @@ Long userId = userRepository.findByUsername(username)
             } else {
                 selectedItems = cart.getItems();
             }
-
             if (selectedItems.isEmpty()) {
                 throw new BadRequestException("No selected items");
             }
@@ -105,7 +99,6 @@ Long userId = userRepository.findByUsername(username)
             ApplyCouponRequest couponRequest = new ApplyCouponRequest();
             couponRequest.setCode(request.getCouponCode());
             couponRequest.setOrderAmount(totalPrice);
-
             CouponResponse couponResponse = couponService.applyCoupon(couponRequest);
             discount = couponResponse.getDiscount();
             couponCode = couponResponse.getCode();
@@ -116,7 +109,6 @@ Long userId = userRepository.findByUsername(username)
         List<OrderItem> items = selectedItems.stream().map(i -> {
             Product product = productRepository.findById(i.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
             return OrderItem.builder()
                     .product(product)
                     .productName(i.getProductName())
@@ -128,8 +120,7 @@ Long userId = userRepository.findByUsername(username)
         }).toList();
 
         items.forEach(i -> inventoryService.reserveStock(
-                i.getProduct().getId(),
-                i.getQuantity()
+                i.getProduct().getId(), i.getQuantity()
         ));
 
         Order order = Order.builder()
@@ -174,21 +165,20 @@ Long userId = userRepository.findByUsername(username)
 
         if (order.getStatus() != OrderStatus.PENDING
                 && order.getStatus() != OrderStatus.PAID) {
-            throw new BadRequestException("Chỉ xác nhận được đơn đang PENDING hoặc PAID");
+            throw new BadRequestException("Chỉ xác nhận được đơn PENDING hoặc PAID");
         }
 
+        // Chỉ chuyển sang CONFIRMED — không nhảy sang PROCESSING
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
 
         order.getItems().forEach(item ->
                 inventoryService.confirmOrder(item.getProduct().getId(), item.getQuantity())
         );
-
         order.getItems().forEach(item ->
                 cartService.removeFromCart(order.getUsername(), item.getProduct().getId())
         );
 
-        // Notify realtime qua WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
@@ -218,7 +208,6 @@ Long userId = userRepository.findByUsername(username)
                 inventoryService.releaseStock(item.getProduct().getId(), item.getQuantity())
         );
 
-        // Notify realtime qua WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
@@ -235,14 +224,13 @@ Long userId = userRepository.findByUsername(username)
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        if (order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new BadRequestException("Chỉ hoàn tất được đơn đang CONFIRMED");
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new BadRequestException("Chỉ hoàn tất được đơn đang DELIVERED");
         }
 
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
-        //Notify realtime qua WebSocket
         orderNotificationService.notifyOrderUpdated(
                 order.getUsername(), order.getId(), order.getStatus().name()
         );
@@ -250,6 +238,9 @@ Long userId = userRepository.findByUsername(username)
         return OrderMapper.toResponse(order);
     }
 
+    // =========================================================
+    // LẤY ĐƠN HÀNG
+    // =========================================================
     @Override
     public OrderResponse getOrder(Long id) {
         Order order = orderRepository.findById(id)
@@ -261,36 +252,61 @@ Long userId = userRepository.findByUsername(username)
     public List<Order> getOrdersByUser(String username) {
         return orderRepository.findByUsername(username);
     }
-    // KHÁCH XÁC NHẬN NHẬN HÀNG / YÊU CẦU TRẢ HÀNG
-// =========================================================
-@Override
-@Transactional
-public OrderResponse updateStatusByCustomer(Long orderId, String username, String status) {
-    Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-    // Chỉ cho phép chủ đơn hàng thao tác
-    if (!order.getUsername().equals(username)) {
-        throw new BadRequestException("Bạn không có quyền thao tác đơn hàng này");
+    // =========================================================
+    // KHÁCH XÁC NHẬN NHẬN HÀNG / YÊU CẦU TRẢ HÀNG / HỦY ĐƠN
+    // =========================================================
+    @Override
+    @Transactional
+    public OrderResponse updateStatusByCustomer(Long orderId, String username, String status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (!order.getUsername().equals(username)) {
+            throw new BadRequestException("Bạn không có quyền thao tác đơn hàng này");
+        }
+
+        switch (status.toUpperCase()) {
+
+            case "COMPLETED" -> {
+                if (order.getStatus() != OrderStatus.DELIVERED) {
+                    throw new BadRequestException(
+                        "Chỉ xác nhận hoàn tất khi đơn đang DELIVERED");
+                }
+                order.setStatus(OrderStatus.COMPLETED);
+            }
+
+            case "RETURNED" -> {
+                if (order.getStatus() != OrderStatus.DELIVERED) {
+                    throw new BadRequestException(
+                        "Chỉ yêu cầu trả hàng khi đơn đang DELIVERED");
+                }
+                order.setStatus(OrderStatus.RETURNED);
+            }
+
+            case "CANCELLED" -> {
+                if (order.getStatus() != OrderStatus.PENDING) {
+                    throw new BadRequestException(
+                        "Khách chỉ hủy được đơn khi đang PENDING");
+                }
+                // Hoàn lại tồn kho khi hủy
+                order.getItems().forEach(item ->
+                    inventoryService.releaseStock(
+                        item.getProduct().getId(), item.getQuantity())
+                );
+                order.setStatus(OrderStatus.CANCELLED);
+            }
+
+            default -> throw new BadRequestException(
+                "Trạng thái không hợp lệ: " + status);
+        }
+
+        orderRepository.save(order);
+
+        orderNotificationService.notifyOrderUpdated(
+                order.getUsername(), order.getId(), order.getStatus().name()
+        );
+
+        return OrderMapper.toResponse(order);
     }
-
-    // Chỉ cho phép khi đang DELIVERED
-    if (order.getStatus() != OrderStatus.DELIVERED) {
-        throw new BadRequestException("Chỉ có thể xác nhận khi đơn đang ở trạng thái DELIVERED");
-    }
-
-    switch (status.toUpperCase()) {
-        case "COMPLETED" -> order.setStatus(OrderStatus.COMPLETED);
-        case "RETURNED"  -> order.setStatus(OrderStatus.RETURNED);
-        default -> throw new BadRequestException("Trạng thái không hợp lệ: " + status);
-    }
-
-    orderRepository.save(order);
-
-    orderNotificationService.notifyOrderUpdated(
-            order.getUsername(), order.getId(), order.getStatus().name()
-    );
-
-    return OrderMapper.toResponse(order);
-}
 }

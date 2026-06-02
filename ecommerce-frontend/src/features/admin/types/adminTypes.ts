@@ -84,8 +84,10 @@ export type OrderStatus =
   | "PROCESSING"
   | "SHIPPED"
   | "DELIVERED"
+  | "COMPLETED"
   | "CANCELLED"
-  | "REFUNDED";
+  | "REFUNDED"
+  | "RETURNED";
 
 export interface AdminOrderItem {
   productId: number;

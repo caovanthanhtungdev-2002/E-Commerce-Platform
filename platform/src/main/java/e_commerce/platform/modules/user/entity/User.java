@@ -37,7 +37,7 @@ public class User {
 
     private String fullName;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)
     private String phone;
 
     @Enumerated(EnumType.STRING)
@@ -64,6 +64,10 @@ public class User {
     private LocalDateTime updatedAt;
 
     private LocalDateTime lastLoginAt;
+
+    private String provider;      // "google", "facebook"
+
+    private String providerId;    // ID từ Google/Facebook
 
     @PrePersist
 public void prePersist() {

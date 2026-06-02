@@ -99,6 +99,16 @@ export default function AdminLayout() {
             <span className={styles.navIcon}>🏭</span>
             <span className={styles.navLabel}>Kho hàng</span>
           </NavLink>
+
+          <NavLink to="/admin/shipments" className={navClass}>
+  <span className={styles.navIcon}>🚚</span>
+  <span className={styles.navLabel}>Vận chuyển</span>
+</NavLink>
+
+<NavLink to="/admin/returns" className={navClass}>
+  <span className={styles.navIcon}>↩️</span>
+  <span className={styles.navLabel}>Hoàn hàng</span>
+</NavLink>
         </nav>
 
         <div className={styles.sidebarFooter}>

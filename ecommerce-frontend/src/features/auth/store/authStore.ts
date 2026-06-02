@@ -15,11 +15,9 @@ interface AuthState {
   logout: () => Promise<void>;
   forgotPassword: (data: any) => Promise<void>;
   resetPassword: (data: any) => Promise<void>;
+  setTokens: (accessToken: string, user: any) => void; // dùng cho OAuth2
 }
 
-/**
- *  useAuthStore: store chính quản lý auth
- */
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -30,66 +28,47 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      /**
-       * LOGIN
-       * gọi API login → lưu token + user
-       */
-   login: async (data) => {
-  set({ isLoading: true, error: null });
+      // ===== LOGIN =====
+      login: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+          const result = await authService.login(data);
+          set({
+            user: result.user,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+            isLoading: false,
+          });
+        } catch (err: any) {
+          set({
+            error: err?.response?.data?.message || 'Login failed',
+            isLoading: false,
+            accessToken: null,
+            refreshToken: null,
+            user: null,
+          });
+          throw err;
+        }
+      },
 
-  try {
-    const result = await authService.login(data);
-console.log(result);
-console.log(result.user);
-console.log(result.user.role);
-    set({
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      isLoading: false,
-    });
-
-  } catch (err: any) {
-    set({
-      error: err?.response?.data?.message || "Login failed",
-      isLoading: false,
-      accessToken: null,
-      refreshToken: null,
-      user: null,
-    });
-
-    throw err;
-  }
-},
-
-      /**
-       * REGISTER
-       * gọi API đăng ký
-       */
+      // ===== REGISTER =====
       register: async (data) => {
         set({ isLoading: true, error: null });
-
         try {
           await authService.register(data);
-
           set({ isLoading: false });
         } catch (err: any) {
           set({
             error: err?.response?.data?.message || 'Register failed',
             isLoading: false,
           });
-
-          throw err; // để page xử lý tiếp (alert, navigate)
+          throw err;
         }
       },
 
-      /**
-       *LOGOUT
-       * gọi API logout + clear store
-       */
+      // ===== LOGOUT =====
       logout: async () => {
         const { refreshToken } = get();
-
         try {
           if (refreshToken) {
             await authService.logout(refreshToken);
@@ -97,55 +76,44 @@ console.log(result.user.role);
         } catch (err) {
           console.log('Logout error:', err);
         }
-
-        // reset toàn bộ state
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-        });
+        set({ user: null, accessToken: null, refreshToken: null });
       },
 
-      /**
-       * FORGOT PASSWORD
-       * gửi email nhận OTP
-       */
+      // ===== FORGOT PASSWORD =====
       forgotPassword: async (data) => {
         try {
           await authService.forgotPassword(data);
         } catch (err: any) {
-          set({
-            error: err?.response?.data?.message || 'Send OTP failed',
-          });
+          set({ error: err?.response?.data?.message || 'Send OTP failed' });
         }
       },
 
-      /**
-       *RESET PASSWORD
-       * nhập OTP + password mới
-       */
+      // ===== RESET PASSWORD =====
       resetPassword: async (data) => {
         try {
           await authService.resetPassword(data);
         } catch (err: any) {
-          set({
-            error: err?.response?.data?.message || 'Reset failed',
-            
-          });
-
+          set({ error: err?.response?.data?.message || 'Reset failed' });
           throw err;
         }
       },
+
+      // ===== SET TOKENS (OAuth2) =====
+      // Được gọi từ OAuth2SuccessPage sau khi lấy được token từ URL
+      setTokens: (accessToken: string, user: any) => {
+        set({
+          accessToken,
+          refreshToken: null, // OAuth2 không trả refreshToken qua URL
+          user,
+          error: null,
+        });
+        // Đồng bộ vào localStorage để axiosInstance interceptor đọc được
+        localStorage.setItem('accessToken', accessToken);
+      },
     }),
 
-    /**
-     *PERSIST (localStorage)
-     * giúp reload vẫn giữ login
-     */
     {
       name: 'auth-storage',
-
-      // chỉ lưu những field cần thiết
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

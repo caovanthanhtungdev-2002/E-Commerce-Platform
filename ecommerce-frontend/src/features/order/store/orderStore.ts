@@ -13,10 +13,10 @@ interface OrderState {
   fetchOrder: (id: number) => Promise<void>;
   fetchOrders: () => Promise<void>;
   updateOrderStatus: (id: number, status: string) => Promise<void>;
+  confirmCOD: (orderId: number) => Promise<void>; // ← MỚI
 }
 
 export const useOrderStore = create<OrderState>((set) => ({
-
   currentOrder: null,
   orders: [],
   loading: false,
@@ -29,10 +29,7 @@ export const useOrderStore = create<OrderState>((set) => ({
       set({ currentOrder: order, loading: false });
       await useCartStore.getState().fetchCart();
     } catch (err: any) {
-      set({
-        error: err?.response?.data?.message || "Create order failed",
-        loading: false,
-      });
+      set({ error: err?.response?.data?.message || "Create order failed", loading: false });
       throw err;
     }
   },
@@ -43,10 +40,7 @@ export const useOrderStore = create<OrderState>((set) => ({
       const order = await orderService.getOrder(id);
       set({ currentOrder: order, loading: false });
     } catch (err: any) {
-      set({
-        error: err?.response?.data?.message || "Fetch order failed",
-        loading: false,
-      });
+      set({ error: err?.response?.data?.message || "Fetch order failed", loading: false });
     }
   },
 
@@ -56,10 +50,7 @@ export const useOrderStore = create<OrderState>((set) => ({
       const orders = await orderService.fetchOrders();
       set({ orders, loading: false });
     } catch (err: any) {
-      set({
-        error: err?.response?.data?.message || "Fetch orders failed",
-        loading: false,
-      });
+      set({ error: err?.response?.data?.message || "Fetch orders failed", loading: false });
     }
   },
 
@@ -69,12 +60,22 @@ export const useOrderStore = create<OrderState>((set) => ({
       const order = await orderService.updateOrderStatus(id, status);
       set({ currentOrder: order, loading: false });
     } catch (err: any) {
-      set({
-        error: err?.response?.data?.message || "Update status failed",
-        loading: false,
-      });
+      set({ error: err?.response?.data?.message || "Update status failed", loading: false });
       throw err;
     }
   },
 
+  
+  confirmCOD: async (orderId) => {
+    try {
+      set({ loading: true, error: null });
+      await orderService.confirmCOD(orderId);
+      // Refetch để lấy status COMPLETED mới nhất
+      const order = await orderService.getOrder(orderId);
+      set({ currentOrder: order, loading: false });
+    } catch (err: any) {
+      set({ error: err?.response?.data?.message || "Confirm COD failed", loading: false });
+      throw err;
+    }
+  },
 }));

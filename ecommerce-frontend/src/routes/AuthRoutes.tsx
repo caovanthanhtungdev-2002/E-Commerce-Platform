@@ -7,6 +7,11 @@ import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import RegisterPage from '@/features/auth/pages/register/RegisterPage';
 import ProfilePage from '@/features/user/pages/profile/ProfilePage';
 import ChangePasswordPage from '@/features/user/pages/changpassword/ChangePasswordPage';
+import OAuth2SuccessPage from '@/features/auth/pages/OAuth2/OAuth2SuccessPage';
+
+import { ShipmentListPage } from '@/features/shipping/pages/shipmentlist/ShipmentListPage';
+import { ShipmentDetailPage } from '@/features/shipping/pages/shipmentdetail/ShipmentDetailPage';
+import { ReturnListPage } from '@/features/shipping/pages/returnlist/ReturnListPage';
 
 // NEW PAGES
 import HomePage from '@/pages/HomePage';
@@ -74,6 +79,7 @@ export function AuthRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/oauth2/success" element={<OAuth2SuccessPage />} />
 
       {/* USER */}
       <Route path="/profile" element={<WithLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></WithLayout>} />
@@ -110,6 +116,9 @@ export function AuthRoutes() {
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="coupons" element={<AdminCouponsPage />} />
           <Route path="inventory" element={<AdminInventoryPage />} />
+          <Route path="shipments" element={<ShipmentListPage />} />
+          <Route path="shipments/:id" element={<ShipmentDetailPage />} />
+          <Route path="returns" element={<ReturnListPage />} />
         </Route>
       </Route>
     </>

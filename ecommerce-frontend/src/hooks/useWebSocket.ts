@@ -1,49 +1,79 @@
 import { useEffect, useRef } from "react";
 import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { useNotificationStore } from "@/features/notification/store/notificationStore";
 
-interface Options {
-    username: string;
-    onOrderUpdate: (orderId: number, status: string) => void;
-    onCartUpdate: () => void;
+interface UseWebSocketOptions {
+  username: string;
+  onOrderUpdate?: (orderId: number) => void;
+  onCartUpdate?: () => void;
+  // ← MỚI
+  onPaymentResult?: (orderId: number, success: boolean, transactionId?: string) => void;
+  onShipmentUpdate?: (orderId: string, shipmentStatus: string) => void;
 }
 
-export function useWebSocket({ username, onOrderUpdate, onCartUpdate }: Options) {
-    const clientRef = useRef<Client | null>(null);
+export function useWebSocket({
+  username,
+  onOrderUpdate,
+  onCartUpdate,
+  onPaymentResult,
+  onShipmentUpdate,
+}: UseWebSocketOptions) {
+  const clientRef = useRef<Client | null>(null);
+  const { addNotification, addPaymentNotification } = useNotificationStore();
 
-    useEffect(() => {
-        console.log("🔌 useWebSocket username:", username);
-        if (!username) return;
+  useEffect(() => {
+    if (!username) return;
 
-        const client = new Client({
-            brokerURL: "ws://localhost:8080/ws/websocket",
-            reconnectDelay: 5000,
-            onConnect: () => {
-                console.log(" WebSocket connected"); 
+    const client = new Client({
+      webSocketFactory: () => new SockJS("/ws"),
+      reconnectDelay: 5000,
 
-                client.subscribe(`/topic/orders/${username}`, (msg) => {
-                    console.log("📦 Order update:", msg.body); 
-                    const { orderId, status } = JSON.parse(msg.body);
-                    onOrderUpdate(orderId, status);
-                });
-
-                client.subscribe(`/topic/cart/${username}`, () => {
-                    console.log("🛒 Cart update received"); 
-                    onCartUpdate();
-                });
-            },
-            onDisconnect: () => {
-                console.log("❌ WebSocket disconnected"); 
-            },
-            onStompError: (frame) => {
-                console.error("STOMP error:", frame); 
-            },
+      onConnect: () => {
+        // ── đơn hàng ──────────────────────────────────────────────
+        client.subscribe(`/user/queue/orders`, (msg) => {
+          const data = JSON.parse(msg.body);
+          // data: { orderId, status, message, timestamp }
+          addNotification(data.orderId, data.status);
+          onOrderUpdate?.(data.orderId);
         });
 
-        client.activate();
-        clientRef.current = client;
+        // ── giỏ hàng ──────────────────────────────────────────────
+        client.subscribe(`/user/queue/cart`, (msg) => {
+          const data = JSON.parse(msg.body);
+          if (data.action === "REFRESH") {
+            onCartUpdate?.();
+          }
+        });
 
-        return () => {
-            client.deactivate();
-        };
-    }, [username]);
+        // ── thanh toán ← MỚI ──────────────────────────────────────
+        client.subscribe(`/user/queue/payment`, (msg) => {
+          const data = JSON.parse(msg.body);
+          // data: { orderId, success, transactionId, message, timestamp }
+          addPaymentNotification(data.orderId, data.success, data.transactionId);
+          onPaymentResult?.(data.orderId, data.success, data.transactionId);
+        });
+
+        // ── vận chuyển ← MỚI ──────────────────────────────────────
+        client.subscribe(`/user/queue/shipment`, (msg) => {
+          const data = JSON.parse(msg.body);
+          // data: { orderId, shipmentStatus, trackingNumber, message, timestamp }
+          // Dùng addNotification với shipmentStatus để hiển thị thông báo
+          addNotification(Number(data.orderId), data.shipmentStatus);
+          onShipmentUpdate?.(data.orderId, data.shipmentStatus);
+        });
+      },
+
+      onStompError: (frame) => {
+        console.error("[WS] STOMP error", frame);
+      },
+    });
+
+    client.activate();
+    clientRef.current = client;
+
+    return () => {
+      client.deactivate();
+    };
+  }, [username]);
 }

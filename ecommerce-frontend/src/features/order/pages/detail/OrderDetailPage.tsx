@@ -4,6 +4,7 @@ import { useOrderStore } from "../../store/orderStore";
 import { useCartStore } from "@/features/cart/store/cartStore";
 import { useUserStore } from "@/features/user/store/userStore";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useShippingStore } from "@/features/shipping/store/shippingStore";
 import OrderItemCard from "../../component/OrderItemCard";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import styles from "./OrderDetailPage.module.css";
@@ -32,6 +33,18 @@ const statusLabel: Record<string, string> = {
   RETURNED:   "Yêu cầu trả hàng",
 };
 
+const SHIPMENT_STATUS_LABEL: Record<string, string> = {
+  PENDING:           "Chờ xử lý",
+  CONFIRMED:         "Đã xác nhận",
+  PICKING_UP:        "Đang lấy hàng",
+  IN_TRANSIT:        "Đang vận chuyển",
+  OUT_FOR_DELIVERY:  "Đang giao đến bạn",
+  DELIVERED:         "Đã giao thành công",
+  FAILED_DELIVERY:   "Giao thất bại",
+  RETURNED:          "Đang hoàn hàng",
+  CANCELLED:         "Đã hủy",
+};
+
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -39,20 +52,49 @@ export default function OrderDetailPage() {
   const { currentOrder, fetchOrder, updateOrderStatus, loading } = useOrderStore();
   const { fetchCart } = useCartStore();
   const { user, fetchProfile } = useUserStore();
+  const { currentShipment, fetchShipmentByOrder } = useShippingStore();
 
   useEffect(() => {
-    if (id) { fetchOrder(Number(id)); fetchCart(); }
+    if (id) {
+      fetchOrder(Number(id));
+      fetchCart();
+    }
     if (!user) fetchProfile();
   }, [id]);
 
+  // Fetch shipment khi đơn đang giao hoặc đã giao
+  useEffect(() => {
+    if (!id || !currentOrder) return;
+    if (["SHIPPED", "DELIVERED", "COMPLETED"].includes(currentOrder.status)) {
+      fetchShipmentByOrder(id);
+    }
+  }, [currentOrder?.status]);
+
   useWebSocket({
     username: user?.username ?? "",
-    onOrderUpdate: (orderId) => { if (orderId === Number(id)) fetchOrder(Number(id)); },
+    onOrderUpdate: (orderId) => {
+      if (orderId === Number(id)) fetchOrder(Number(id));
+    },
     onCartUpdate: () => fetchCart(),
+    onPaymentResult: (orderId) => {
+      if (orderId === Number(id)) fetchOrder(Number(id));
+    },
+    onShipmentUpdate: (orderId) => {
+      if (Number(orderId) === Number(id)) {
+        fetchOrder(Number(id));
+        fetchShipmentByOrder(id!);
+      }
+    },
   });
 
-  if (loading && !currentOrder) return <div className={styles.loading}><div className={styles.spinner} />Đang tải...</div>;
-  if (!currentOrder) return <div className={styles.loading}>Không tìm thấy đơn hàng</div>;
+  if (loading && !currentOrder) return (
+    <div className={styles.loading}>
+      <div className={styles.spinner} />Đang tải...
+    </div>
+  );
+  if (!currentOrder) return (
+    <div className={styles.loading}>Không tìm thấy đơn hàng</div>
+  );
 
   const isCancelled = CANCELLED_STATUSES.has(currentOrder.status);
   const currentStepIdx = STATUS_STEPS.findIndex((s) => s.key === currentOrder.status);
@@ -66,6 +108,12 @@ export default function OrderDetailPage() {
   const handleRequestReturn = async () => {
     if (!confirm("Bạn muốn yêu cầu trả hàng / hoàn tiền?")) return;
     await updateOrderStatus(currentOrder.id, "RETURNED");
+    fetchOrder(currentOrder.id);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!confirm("Bạn có chắc muốn hủy đơn hàng này?")) return;
+    await updateOrderStatus(currentOrder.id, "CANCELLED");
     fetchOrder(currentOrder.id);
   };
 
@@ -83,19 +131,26 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* TIMELINE — chỉ hiện khi không bị huỷ */}
+        {/* TIMELINE */}
         {!isCancelled && (
           <div className={styles.timeline}>
             {STATUS_STEPS.map((step, idx) => {
-              const done = idx < currentStepIdx;
+              const done   = idx < currentStepIdx;
               const active = idx === currentStepIdx;
               return (
-                <div key={step.key} className={`${styles.tlStep} ${done ? styles.done : ""} ${active ? styles.active : ""}`}>
+                <div
+                  key={step.key}
+                  className={`${styles.tlStep} ${done ? styles.done : ""} ${active ? styles.active : ""}`}
+                >
                   {idx < STATUS_STEPS.length - 1 && (
                     <div className={`${styles.tlLine} ${done ? styles.lineDone : ""}`} />
                   )}
                   <div className={styles.tlDot}>
-                    {done && <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    {done && (
+                      <svg width="10" height="10" viewBox="0 0 10 10">
+                        <path d="M1.5 5l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </div>
                   <div className={styles.tlLabel}>{step.label}</div>
                 </div>
@@ -129,10 +184,45 @@ export default function OrderDetailPage() {
           <span className={styles.payLabel}>Phương thức thanh toán</span>
           <span className={styles.payValue}>
             <span className={styles.payBadge}>{currentOrder.paymentMethod}</span>
-            {currentOrder.paymentMethod === "COD" ? "Thanh toán khi nhận hàng" : "Thanh toán online"}
+            {currentOrder.paymentMethod === "COD"
+              ? "Thanh toán khi nhận hàng"
+              : "Thanh toán online"}
           </span>
         </div>
       </div>
+
+      {/* THÔNG TIN VẬN CHUYỂN */}
+      {currentShipment && ["SHIPPED", "DELIVERED", "COMPLETED"].includes(currentOrder.status) && (
+        <div className={styles.card}>
+          <div className={styles.sectionTitle}>🚚 Thông tin vận chuyển</div>
+          <div className={styles.trackingBlock}>
+            <div className={styles.trackingRow}>
+              <span className={styles.trackingLabel}>Đơn vị vận chuyển</span>
+              <strong>{currentShipment.carrier}</strong>
+            </div>
+            <div className={styles.trackingRow}>
+              <span className={styles.trackingLabel}>Mã vận đơn</span>
+              <strong className={styles.trackingCode}>
+                {currentShipment.trackingNumber}
+              </strong>
+            </div>
+            <div className={styles.trackingRow}>
+              <span className={styles.trackingLabel}>Trạng thái</span>
+              <span className={styles.trackingStatus}>
+                {SHIPMENT_STATUS_LABEL[currentShipment.status] ?? currentShipment.status}
+              </span>
+            </div>
+            {currentShipment.deliveredAt && (
+              <div className={styles.trackingRow}>
+                <span className={styles.trackingLabel}>Thời gian giao</span>
+                <span>
+                  {new Date(currentShipment.deliveredAt).toLocaleString("vi-VN")}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ITEMS */}
       <div className={styles.card}>
@@ -140,7 +230,6 @@ export default function OrderDetailPage() {
         {currentOrder.items.map((item) => (
           <OrderItemCard key={item.productId} item={item} />
         ))}
-
         <div className={styles.summary}>
           <div className={styles.sumRow}>
             <span>Tạm tính</span>
@@ -149,7 +238,9 @@ export default function OrderDetailPage() {
           {currentOrder.discount > 0 && (
             <div className={styles.sumRow}>
               <span>Giảm giá</span>
-              <span className={styles.discount}>-{formatCurrencyVND(currentOrder.discount)}</span>
+              <span className={styles.discount}>
+                -{formatCurrencyVND(currentOrder.discount)}
+              </span>
             </div>
           )}
           <div className={styles.sumFinal}>
@@ -159,27 +250,61 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* ACTIONS */}
+      {/* ACTION: Hủy đơn — chỉ khi PENDING */}
+      {currentOrder.status === "PENDING" && (
+        <div className={styles.card}>
+          <div className={styles.actionBox}>
+            <p className={styles.actionNote}>
+              Đơn hàng chưa được xác nhận. Bạn có thể hủy ngay bây giờ.
+            </p>
+            <button
+              className={styles.btnSecondary}
+              onClick={handleCancelOrder}
+              disabled={loading}
+            >
+              ❌ Hủy đơn hàng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ACTION: Thanh toán VNPAY chưa trả tiền */}
       {currentOrder.status === "PENDING" && currentOrder.paymentMethod === "VNPAY" && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
-            <p className={styles.actionNote}>Đơn hàng chưa được thanh toán. Vui lòng thanh toán để tiếp tục.</p>
-            <button className={styles.btnPrimary} onClick={() => navigate(`/payment/${currentOrder.id}`)}>
+            <p className={styles.actionNote}>
+              Đơn hàng chưa được thanh toán. Vui lòng thanh toán để tiếp tục.
+            </p>
+            <button
+              className={styles.btnPrimary}
+              onClick={() => navigate(`/payment/${currentOrder.id}`)}
+            >
               Thanh toán ngay
             </button>
           </div>
         </div>
       )}
 
+      {/* ACTION: Xác nhận nhận hàng / Trả hàng */}
       {currentOrder.status === "DELIVERED" && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
-            <p className={styles.actionNote}>🎁 Bạn đã nhận được hàng chưa? Xác nhận để hoàn tất đơn hàng.</p>
+            <p className={styles.actionNote}>
+              🎁 Bạn đã nhận được hàng chưa? Xác nhận để hoàn tất đơn hàng.
+            </p>
             <div className={styles.actionBtns}>
-              <button className={styles.btnPrimary} onClick={handleConfirmReceived} disabled={loading}>
+              <button
+                className={styles.btnPrimary}
+                onClick={handleConfirmReceived}
+                disabled={loading}
+              >
                 ✅ Đã nhận được hàng
               </button>
-              <button className={styles.btnSecondary} onClick={handleRequestReturn} disabled={loading}>
+              <button
+                className={styles.btnSecondary}
+                onClick={handleRequestReturn}
+                disabled={loading}
+              >
                 🔄 Yêu cầu trả hàng
               </button>
             </div>
@@ -187,29 +312,27 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {/* ACTION: Đánh giá sau khi COMPLETED */}
       {currentOrder.status === "COMPLETED" && (
-  <div className={styles.card}>
-    <div className={styles.reviewBox}>
-      <p className={styles.reviewNote}>
-        🌟 Đơn hàng hoàn tất! Hãy đánh giá sản phẩm nhé.
-      </p>
-
-      <div className={styles.reviewProducts}>
-        {currentOrder.items.map((item) => (
-          <button
-            key={item.productId}
-            className={styles.btnReview}
-            onClick={() =>
-              navigate(`/products/${item.productId}/reviews`)
-            }
-          >
-            ✍️ Đánh giá {item.productName}
-          </button>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+        <div className={styles.card}>
+          <div className={styles.reviewBox}>
+            <p className={styles.reviewNote}>
+              🌟 Đơn hàng hoàn tất! Hãy đánh giá sản phẩm nhé.
+            </p>
+            <div className={styles.reviewProducts}>
+              {currentOrder.items.map((item) => (
+                <button
+                  key={item.productId}
+                  className={styles.btnReview}
+                  onClick={() => navigate(`/products/${item.productId}/reviews`)}
+                >
+                  ✍️ Đánh giá {item.productName}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
