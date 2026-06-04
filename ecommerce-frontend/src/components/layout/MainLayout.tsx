@@ -23,12 +23,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const subHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { items, fetchCart } = useCartStore();
-  const { categories, tree, fetchCategories, fetchTree } = useCategoryStore();
+  const { tree, fetchCategories, fetchTree } = useCategoryStore();
   const { user, logout } = useAuthStore();
+  console.log("[DEBUG] auth user shape:", JSON.stringify(user));
 
-  const { notifications, addNotification, markAllRead, clearAll } = useNotificationStore();
+  // ← bỏ addNotification
+  const { notifications, markAllRead, clearAll } = useNotificationStore();
   const unreadCount = notifications.filter((n) => !n.read).length;
-
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   useEffect(() => {
@@ -40,7 +41,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     if (user) fetchCart();
   }, [user]);
 
-  // Đóng user menu khi click ngoài
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -51,7 +51,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Đóng notif dropdown khi click ngoài
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
@@ -62,12 +61,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // WebSocket — lắng nghe realtime toàn app
+  // ← useWebSocket chỉ cần onCartUpdate, hook tự lo notification + toast
   useWebSocket({
-    username: user?.username ?? "",
-    onOrderUpdate: (orderId, status) => {
-      addNotification(orderId, status);
-    },
+    onOrderUpdate: () => {},
     onCartUpdate: () => fetchCart(),
   });
 
@@ -83,7 +79,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     navigate("/");
   };
 
-  // --- Hover handlers cấp 1 ---
   const handleNavMouseEnter = (catId: number) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     setHoveredCatId(catId);
@@ -108,7 +103,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }, 150);
   };
 
-  // --- Hover handlers cấp 2 ---
   const handleSubMouseEnter = (subId: number) => {
     if (subHoverTimer.current) clearTimeout(subHoverTimer.current);
     setHoveredSubId(subId);
@@ -131,15 +125,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className={styles.layout}>
-      {/* TOP PROMO BAR */}
       <div className={styles.promoBar}>
         <span>🔥 Flash Sale mỗi ngày - Giảm đến <strong>50%++</strong> | Miễn phí giao hàng đơn từ 500k</span>
       </div>
 
-      {/* MAIN HEADER */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          {/* LOGO */}
           <Link to="/" className={styles.logo}>
             <img src="/logo.png" alt="TGBNY" onError={(e) => {
               e.currentTarget.style.display = "none";
@@ -148,7 +139,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <span style={{ display: "none" }} className={styles.logoText}>TGBNY</span>
           </Link>
 
-          {/* SEARCH */}
           <form className={styles.searchForm} onSubmit={handleSearch}>
             <input
               className={styles.searchInput}
@@ -163,10 +153,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </button>
           </form>
 
-          {/* ACTIONS */}
           <div className={styles.actions}>
 
-            {/* USER MENU */}
             <div className={styles.actionItem} ref={userMenuRef}>
               <button className={styles.actionBtn} onClick={() => setShowUserMenu(!showUserMenu)}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -197,7 +185,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               )}
             </div>
 
-            {/* BELL NOTIFICATION — chỉ hiện khi đã login */}
             {user && (
               <div className={styles.actionItem} ref={notifRef}>
                 <button
@@ -259,7 +246,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </div>
             )}
 
-            {/* CART */}
             <Link to="/cart" className={styles.cartBtn}>
               <div className={styles.cartIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -276,7 +262,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
 
-        {/* CATEGORY NAV */}
         <nav className={styles.categoryNav}>
           <div className={styles.categoryNavInner}>
             <Link
@@ -313,7 +298,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             ))}
           </div>
 
-          {/* MEGA MENU 3 CẤP */}
           {hoveredCat && hoveredCat.children && hoveredCat.children.length > 0 && (
             <div
               className={styles.megaMenu}
@@ -398,7 +382,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                           <span className={styles.megaLevel3HeaderArrow}>Xem tất cả →</span>
                         </Link>
                       </div>
-
                       <div className={styles.megaLevel3Grid}>
                         {hoveredSub.children.map((subSub) => (
                           <Link
@@ -423,12 +406,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </nav>
       </header>
 
-      {/* MAIN CONTENT */}
       <main className={styles.main}>
         {children}
       </main>
 
-      {/* FOOTER */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerCol}>

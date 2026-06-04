@@ -8,6 +8,7 @@ import { useShippingStore } from "@/features/shipping/store/shippingStore";
 import OrderItemCard from "../../component/OrderItemCard";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import styles from "./OrderDetailPage.module.css";
+import { formatDate, formatDateTime } from '@/utils/dateUtils';
 
 const STATUS_STEPS = [
   { key: "PENDING",    label: "Đặt hàng"  },
@@ -54,15 +55,18 @@ export default function OrderDetailPage() {
   const { user, fetchProfile } = useUserStore();
   const { currentShipment, fetchShipmentByOrder } = useShippingStore();
 
+  // Kéo username ra biến — khi fetchProfile() resolve, username thay đổi
+  // → useWebSocket re-run với username đúng → WS connect và subscribe
+  const username = user?.username ?? "";
+
   useEffect(() => {
     if (id) {
       fetchOrder(Number(id));
       fetchCart();
     }
-    if (!user) fetchProfile();
+    fetchProfile();
   }, [id]);
 
-  // Fetch shipment khi đơn đang giao hoặc đã giao
   useEffect(() => {
     if (!id || !currentOrder) return;
     if (["SHIPPED", "DELIVERED", "COMPLETED"].includes(currentOrder.status)) {
@@ -71,9 +75,11 @@ export default function OrderDetailPage() {
   }, [currentOrder?.status]);
 
   useWebSocket({
-    username: user?.username ?? "",
     onOrderUpdate: (orderId) => {
-      if (orderId === Number(id)) fetchOrder(Number(id));
+      if (orderId === Number(id)) {
+        fetchOrder(Number(id));
+        fetchShipmentByOrder(String(id));
+      }
     },
     onCartUpdate: () => fetchCart(),
     onPaymentResult: (orderId) => {
@@ -82,7 +88,7 @@ export default function OrderDetailPage() {
     onShipmentUpdate: (orderId) => {
       if (Number(orderId) === Number(id)) {
         fetchOrder(Number(id));
-        fetchShipmentByOrder(id!);
+        fetchShipmentByOrder(String(id));
       }
     },
   });
@@ -131,7 +137,15 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* TIMELINE */}
+        <div className={styles.orderMeta}>
+          {currentOrder.createdAt && (
+            <span>Đặt lúc: {formatDateTime(currentOrder.createdAt)}</span>
+          )}
+          {currentOrder.updatedAt && (
+            <span> · Cập nhật: {formatDateTime(currentOrder.updatedAt)}</span>
+          )}
+        </div>
+
         {!isCancelled && (
           <div className={styles.timeline}>
             {STATUS_STEPS.map((step, idx) => {
@@ -159,7 +173,6 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* CANCELLED BANNER */}
         {isCancelled && (
           <div className={styles.cancelledBanner}>
             {statusLabel[currentOrder.status]}
@@ -202,9 +215,7 @@ export default function OrderDetailPage() {
             </div>
             <div className={styles.trackingRow}>
               <span className={styles.trackingLabel}>Mã vận đơn</span>
-              <strong className={styles.trackingCode}>
-                {currentShipment.trackingNumber}
-              </strong>
+              <strong className={styles.trackingCode}>{currentShipment.trackingNumber}</strong>
             </div>
             <div className={styles.trackingRow}>
               <span className={styles.trackingLabel}>Trạng thái</span>
@@ -215,9 +226,7 @@ export default function OrderDetailPage() {
             {currentShipment.deliveredAt && (
               <div className={styles.trackingRow}>
                 <span className={styles.trackingLabel}>Thời gian giao</span>
-                <span>
-                  {new Date(currentShipment.deliveredAt).toLocaleString("vi-VN")}
-                </span>
+                <span>{formatDateTime(currentShipment.deliveredAt)}</span>
               </div>
             )}
           </div>
@@ -250,35 +259,28 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* ACTION: Hủy đơn — chỉ khi PENDING */}
+      {/* ACTION: Hủy đơn */}
       {currentOrder.status === "PENDING" && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
             <p className={styles.actionNote}>
               Đơn hàng chưa được xác nhận. Bạn có thể hủy ngay bây giờ.
             </p>
-            <button
-              className={styles.btnSecondary}
-              onClick={handleCancelOrder}
-              disabled={loading}
-            >
+            <button className={styles.btnSecondary} onClick={handleCancelOrder} disabled={loading}>
               ❌ Hủy đơn hàng
             </button>
           </div>
         </div>
       )}
 
-      {/* ACTION: Thanh toán VNPAY chưa trả tiền */}
+      {/* ACTION: Thanh toán VNPAY */}
       {currentOrder.status === "PENDING" && currentOrder.paymentMethod === "VNPAY" && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
             <p className={styles.actionNote}>
               Đơn hàng chưa được thanh toán. Vui lòng thanh toán để tiếp tục.
             </p>
-            <button
-              className={styles.btnPrimary}
-              onClick={() => navigate(`/payment/${currentOrder.id}`)}
-            >
+            <button className={styles.btnPrimary} onClick={() => navigate(`/payment/${currentOrder.id}`)}>
               Thanh toán ngay
             </button>
           </div>
@@ -293,18 +295,10 @@ export default function OrderDetailPage() {
               🎁 Bạn đã nhận được hàng chưa? Xác nhận để hoàn tất đơn hàng.
             </p>
             <div className={styles.actionBtns}>
-              <button
-                className={styles.btnPrimary}
-                onClick={handleConfirmReceived}
-                disabled={loading}
-              >
+              <button className={styles.btnPrimary} onClick={handleConfirmReceived} disabled={loading}>
                 ✅ Đã nhận được hàng
               </button>
-              <button
-                className={styles.btnSecondary}
-                onClick={handleRequestReturn}
-                disabled={loading}
-              >
+              <button className={styles.btnSecondary} onClick={handleRequestReturn} disabled={loading}>
                 🔄 Yêu cầu trả hàng
               </button>
             </div>
@@ -312,7 +306,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* ACTION: Đánh giá sau khi COMPLETED */}
+      {/* ACTION: Đánh giá */}
       {currentOrder.status === "COMPLETED" && (
         <div className={styles.card}>
           <div className={styles.reviewBox}>

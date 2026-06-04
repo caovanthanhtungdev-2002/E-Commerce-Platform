@@ -24,6 +24,8 @@ public class OrderMapper {
                 .phone(order.getPhone())
                 .address(order.getAddress())
                 .paymentMethod(order.getPaymentMethod())
+                .createdAt(order.getCreatedAt())   
+                .updatedAt(order.getUpdatedAt())
                 .build();
     }
 

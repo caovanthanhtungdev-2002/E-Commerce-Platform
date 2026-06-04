@@ -330,3 +330,47 @@
 }
 
 .btnReview:hover { background: #15803d; }
+/* ORDER META */
+.orderMeta {
+  display: flex;
+  justify-content: space-between;  
+  align-items: center;
+  padding: 10px 18px 12px;
+  font-size: 12px;
+  color: #999;
+  border-bottom: 0.5px solid #f5f5f5;
+  flex-wrap: wrap;
+}
+
+/* TRACKING BLOCK */
+.trackingBlock {
+  padding: 12px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trackingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.trackingLabel {
+  color: #888;
+}
+
+.trackingCode {
+  font-family: monospace;
+  font-size: 13px;
+  color: #222;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.trackingStatus {
+  color: #0891b2;
+  font-weight: 500;
+}

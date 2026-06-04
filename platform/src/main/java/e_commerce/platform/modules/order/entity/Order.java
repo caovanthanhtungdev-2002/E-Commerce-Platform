@@ -7,6 +7,8 @@ import e_commerce.platform.modules.order.enums.OrderStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
+
 @Entity
 @Table(
     name = "orders",
@@ -69,4 +71,5 @@ public void prePersist() {
 public void preUpdate() {
     this.updatedAt = LocalDateTime.now();
 }
+
 }

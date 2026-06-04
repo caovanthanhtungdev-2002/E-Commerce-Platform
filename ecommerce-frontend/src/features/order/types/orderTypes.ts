@@ -9,6 +9,11 @@ export type OrderStatus =
   | "REFUNDED"
   | "RETURNED"
   | "COMPLETED";
+export interface OrderStatusHistory {
+  status: OrderStatus;
+  changedAt: string;   
+  note?: string;
+}
 
 export interface OrderItem {
   productId: number;
@@ -36,7 +41,9 @@ export interface Order {
   receiverName: string;
   phone: string;
   address: string;
-  createdAt?: string;        
+  createdAt?: string;  
+  updatedAt?: string;
+  statusHistory?: OrderStatusHistory[];      
   paidAt?: string;          
 }
 

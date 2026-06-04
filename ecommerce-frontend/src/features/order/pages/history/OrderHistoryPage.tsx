@@ -4,6 +4,7 @@ import { useOrderStore } from "../../store/orderStore";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
 import styles from "./OrderHistoryPage.module.css";
+import { formatDate } from '@/utils/dateUtils';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   PENDING:    { label: "Chờ xác nhận",            color: "#ea580c" },
@@ -86,10 +87,15 @@ export default function OrderHistoryPage() {
 
                 {/* FOOTER */}
                 <div className={styles.cardFooter}>
-                  <span className={styles.totalLabel}>Thành tiền:</span>
-                  <span className={styles.totalPrice}>{formatCurrencyVND(order.finalPrice)}</span>
-                  <span className={styles.viewDetail}>Xem chi tiết →</span>
-                </div>
+  {order.createdAt && (
+    <span className={styles.orderTime}>
+       {formatDate(order.createdAt)}
+    </span>
+  )}
+  <span className={styles.totalLabel}>Thành tiền:</span>
+  <span className={styles.totalPrice}>{formatCurrencyVND(order.finalPrice)}</span>
+  <span className={styles.viewDetail}>Xem chi tiết →</span>
+</div>
               </div>
             );
           })}

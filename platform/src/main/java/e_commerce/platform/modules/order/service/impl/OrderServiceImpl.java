@@ -248,9 +248,10 @@ public class OrderServiceImpl implements OrderService {
         return OrderMapper.toResponse(order);
     }
 
+    // lịch sử đơn hàng
     @Override
     public List<Order> getOrdersByUser(String username) {
-        return orderRepository.findByUsername(username);
+         return orderRepository.findByUsernameOrderByCreatedAtDesc(username);
     }
 
     // =========================================================

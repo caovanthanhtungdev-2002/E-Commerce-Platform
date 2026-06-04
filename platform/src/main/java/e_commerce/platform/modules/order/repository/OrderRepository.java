@@ -97,6 +97,8 @@ boolean hasPurchased(
     Page<Order> findAll(Pageable pageable);
 
     List<Order> findByUsername(String username);
+    
+    List<Order> findByUsernameOrderByCreatedAtDesc(String username);
 
     List<Order> findByStatusAndPaidAtBefore(
         OrderStatus status,

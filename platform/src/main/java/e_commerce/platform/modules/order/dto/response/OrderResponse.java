@@ -3,6 +3,7 @@ package e_commerce.platform.modules.order.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -25,4 +26,7 @@ private String phone;
 private String address;
 
 private String paymentMethod;
+
+ private LocalDateTime createdAt;
+ private LocalDateTime updatedAt;
 }
