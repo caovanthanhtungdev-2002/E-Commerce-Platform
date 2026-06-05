@@ -5,6 +5,7 @@ import { useCategoryStore } from "@/features/category/store/categoryStore";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useNotificationStore } from "@/features/notification/store/notificationStore";
+import { useOrderStore } from "@/features/order/store/orderStore";
 import styles from "./MainLayout.module.css";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const notifRef = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const { setOrderStatus } = useOrderStore();
   const { items, fetchCart } = useCartStore();
   const { tree, fetchCategories, fetchTree } = useCategoryStore();
   const { user, logout } = useAuthStore();
@@ -30,7 +31,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   // ← bỏ addNotification
   const { notifications, markAllRead, clearAll } = useNotificationStore();
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const cartCount = items.length;
 
   useEffect(() => {
     fetchCategories(0);
@@ -61,12 +62,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ← useWebSocket chỉ cần onCartUpdate, hook tự lo notification + toast
-  useWebSocket({
-    onOrderUpdate: () => {},
-    onCartUpdate: () => fetchCart(),
-  });
-
+ useWebSocket({
+  onCartUpdate: () => fetchCart(),
+  onOrderUpdate: (orderId, status) => {
+    setOrderStatus(orderId, status);
+  },
+});
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (keyword.trim()) {

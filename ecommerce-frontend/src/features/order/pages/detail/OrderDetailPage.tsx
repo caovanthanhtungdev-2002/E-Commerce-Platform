@@ -50,13 +50,12 @@ export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { currentOrder, fetchOrder, updateOrderStatus, loading } = useOrderStore();
+  // ← thêm refreshOrder
+  const { currentOrder, fetchOrder, refreshOrder, updateOrderStatus, loading } = useOrderStore();
   const { fetchCart } = useCartStore();
   const { user, fetchProfile } = useUserStore();
   const { currentShipment, fetchShipmentByOrder } = useShippingStore();
 
-  // Kéo username ra biến — khi fetchProfile() resolve, username thay đổi
-  // → useWebSocket re-run với username đúng → WS connect và subscribe
   const username = user?.username ?? "";
 
   useEffect(() => {
@@ -76,18 +75,19 @@ export default function OrderDetailPage() {
 
   useWebSocket({
     onOrderUpdate: (orderId) => {
+      console.log("[WS] onOrderUpdate:", orderId, Number(id)); // ← log để verify
       if (orderId === Number(id)) {
-        fetchOrder(Number(id));
+        refreshOrder(Number(id));         // ← đổi fetchOrder → refreshOrder
         fetchShipmentByOrder(String(id));
       }
     },
     onCartUpdate: () => fetchCart(),
     onPaymentResult: (orderId) => {
-      if (orderId === Number(id)) fetchOrder(Number(id));
+      if (orderId === Number(id)) refreshOrder(Number(id)); // ← đổi
     },
     onShipmentUpdate: (orderId) => {
       if (Number(orderId) === Number(id)) {
-        fetchOrder(Number(id));
+        refreshOrder(Number(id));         // ← đổi
         fetchShipmentByOrder(String(id));
       }
     },

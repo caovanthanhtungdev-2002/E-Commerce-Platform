@@ -1,13 +1,17 @@
 import { create } from "zustand";
 import * as orderService from "../services/orderService";
-import type { Order, CreateOrderRequest } from "../types/orderTypes";
+import type { Order, CreateOrderRequest , OrderStatus} from "../types/orderTypes";
 import { useCartStore } from "@/features/cart/store/cartStore";
+
 
 interface OrderState {
   currentOrder: Order | null;
   orders: Order[];
   loading: boolean;
   error: string | null;
+  setOrderStatus: (orderId: number, status: string) => void;
+  refreshOrder: (id: number) => Promise<void>;
+
 
   create: (payload: CreateOrderRequest) => Promise<void>;
   fetchOrder: (id: number) => Promise<void>;
@@ -22,6 +26,25 @@ export const useOrderStore = create<OrderState>((set) => ({
   loading: false,
   error: null,
 
+setOrderStatus: (orderId, status) => {
+  set((state) => ({
+    currentOrder:
+      state.currentOrder?.id === orderId
+        ? { ...state.currentOrder, status: status as OrderStatus }
+        : state.currentOrder,
+    orders: state.orders.map((o) =>
+      o.id === orderId ? { ...o, status: status as OrderStatus } : o
+    ),
+  }));
+},
+refreshOrder: async (id) => {
+  try {
+    const order = await orderService.getOrder(id);
+    set({ currentOrder: order });
+  } catch {
+    
+  }
+},
   create: async (payload) => {
     try {
       set({ loading: true, error: null });
