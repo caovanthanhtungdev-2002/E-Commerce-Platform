@@ -8,7 +8,7 @@ import { useShippingStore } from "@/features/shipping/store/shippingStore";
 import OrderItemCard from "../../component/OrderItemCard";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import styles from "./OrderDetailPage.module.css";
-import { formatDate, formatDateTime } from '@/utils/dateUtils';
+import { formatDateTime } from '@/utils/dateUtils';
 
 const STATUS_STEPS = [
   { key: "PENDING",    label: "Đặt hàng"  },
@@ -22,6 +22,7 @@ const STATUS_STEPS = [
 const CANCELLED_STATUSES = new Set(["CANCELLED", "REFUNDED", "RETURNED"]);
 
 const statusLabel: Record<string, string> = {
+  AWAITING_PAYMENT: "Chờ thanh toán",
   PENDING:    "Chờ xác nhận",
   CONFIRMED:  "Đang chuẩn bị hàng",
   PROCESSING: "Đang đóng gói",
@@ -260,7 +261,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* ACTION: Hủy đơn */}
-      {currentOrder.status === "PENDING" && (
+      {(currentOrder.status === "PENDING" || currentOrder.status === "AWAITING_PAYMENT") && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
             <p className={styles.actionNote}>
@@ -274,7 +275,7 @@ export default function OrderDetailPage() {
       )}
 
       {/* ACTION: Thanh toán VNPAY */}
-      {currentOrder.status === "PENDING" && currentOrder.paymentMethod === "VNPAY" && (
+     {currentOrder.status === "AWAITING_PAYMENT" && currentOrder.paymentMethod === "VNPAY" && (
         <div className={styles.card}>
           <div className={styles.actionBox}>
             <p className={styles.actionNote}>

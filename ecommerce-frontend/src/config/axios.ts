@@ -7,11 +7,10 @@ const axiosInstance = axios.create({
 
 // Attach token nếu có
 axiosInstance.interceptors.request.use((config) => {
-  // Nếu đã có Authorization rồi thì không ghi đè
   if (config.headers?.Authorization) {
     return config;
   }
-  
+
   const token = useAuthStore.getState().accessToken;
 
   if (token) {
@@ -22,7 +21,7 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto refresh — theo logic Shopee: KHÔNG redirect tự động
+// Auto refresh
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -33,12 +32,31 @@ axiosInstance.interceptors.response.use(
 
       const { refreshToken, accessToken } = useAuthStore.getState();
 
-      // Nếu là guest (không có token gì cả) → bỏ qua, không làm gì
+      //Khách vãn lai (không có token) → bỏ qua hoàn toàn, không làm gì
       if (!refreshToken && !accessToken) {
         return Promise.reject(error);
       }
 
-      // Đã từng login → thử refresh
+      // Đã login → kiểm tra có phải bị khóa không trước khi refresh
+      const message: string = error.response?.data?.message ?? "";
+      const isBlocked =
+        message.includes("bị khóa") ||
+        message.includes("blocked") ||
+        message.includes("disabled");
+
+      if (isBlocked) {
+        // Bị khóa → KHÔNG refresh, clear session luôn
+        useAuthStore.setState({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+        });
+        alert("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin.");
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      // Token hết hạn → thử refresh bình thường
       try {
         const res = await axios.post(
           'http://localhost:8080/api/auth/refresh',
@@ -56,8 +74,7 @@ axiosInstance.interceptors.response.use(
 
         return axiosInstance(originalRequest);
       } catch {
-        // Refresh thất bại → clear session
-        // KHÔNG redirect — để UI tự cập nhật qua state (giống Shopee)
+        // Refresh thất bại → clear session, KHÔNG redirect 
         useAuthStore.setState({
           user: null,
           accessToken: null,

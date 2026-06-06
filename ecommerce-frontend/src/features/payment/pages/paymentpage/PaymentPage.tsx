@@ -23,39 +23,22 @@ export default function PaymentPage() {
 
   const [fetched, setFetched] = useState(false);
 
-  // =========================================
-  // FETCH ORDER
-  // =========================================
-
   useEffect(() => {
     if (!id) return;
     useOrderStore.setState({ currentOrder: null, error: null });
     fetchOrder(Number(id)).finally(() => setFetched(true));
   }, [id]);
 
-  // =========================================
-  // CHẶN BACK VỀ CHECKOUT
-  // =========================================
-
   useEffect(() => {
     if (!id) return;
-    // Thay thế history entry để back không về checkout
     window.history.replaceState(null, "", `/payment/${id}`);
   }, [id]);
-
-  // =========================================
-  // REDIRECT NẾU ĐÃ PAID
-  // =========================================
 
   useEffect(() => {
     if (currentOrder?.status === "PAID") {
       navigate(`/orders/${currentOrder.id}`, { replace: true });
     }
   }, [currentOrder]);
-
-  // =========================================
-  // LOADING
-  // =========================================
 
   if (!fetched || orderLoading) {
     return (
@@ -65,10 +48,6 @@ export default function PaymentPage() {
       </div>
     );
   }
-
-  // =========================================
-  // ERROR
-  // =========================================
 
   if (orderError || !currentOrder) {
     return (
@@ -84,12 +63,8 @@ export default function PaymentPage() {
     );
   }
 
-  // =========================================
-  // HANDLE PAY → redirect VNPAY
-  // =========================================
-
   const handlePay = async () => {
-    if (currentOrder.status !== "PENDING") {
+    if (currentOrder.status !== "AWAITING_PAYMENT") {
       alert("Đơn hàng không hợp lệ để thanh toán");
       return;
     }
@@ -101,26 +76,15 @@ export default function PaymentPage() {
     }
   };
 
-  // =========================================
-  // UI
-  // =========================================
-
   return (
     <div className={styles.page}>
 
-      {/* BREADCRUMB */}
       <div className={styles.breadcrumb}>
-        <span
-          style={{ cursor: "pointer", color: "#888" }}
-          onClick={() => navigate("/cart")}
-        >
+        <span style={{ cursor: "pointer", color: "#888" }} onClick={() => navigate("/cart")}>
           Giỏ hàng
         </span>
         <span className={styles.chevron}>›</span>
-        <span
-          style={{ cursor: "pointer", color: "#888" }}
-          onClick={() => navigate("/cart")}
-        >
+        <span style={{ cursor: "pointer", color: "#888" }} onClick={() => navigate("/cart")}>
           Thanh toán
         </span>
         <span className={styles.chevron}>›</span>
@@ -129,13 +93,8 @@ export default function PaymentPage() {
 
       <div className={styles.container}>
 
-        {/* ================================= */}
-        {/* LEFT                              */}
-        {/* ================================= */}
-
         <div className={styles.left}>
 
-          {/* ĐỊA CHỈ GIAO HÀNG */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <span className={styles.cardHeaderIcon}>📍</span>
@@ -143,51 +102,35 @@ export default function PaymentPage() {
             </div>
             <div className={styles.cardBody}>
               <div className={styles.addressRow}>
-
                 <div className={styles.addressIcon}>📦</div>
-
                 <div className={styles.addressDetails}>
-                  <div className={styles.addressName}>
-                    {currentOrder.receiverName || "—"}
-                  </div>
-                  <div className={styles.addressPhone}>
-                    📞 {currentOrder.phone || "—"}
-                  </div>
-                  <div className={styles.addressText}>
-                    {currentOrder.address || "—"}
-                  </div>
+                  <div className={styles.addressName}>{currentOrder.receiverName || "—"}</div>
+                  <div className={styles.addressPhone}>📞 {currentOrder.phone || "—"}</div>
+                  <div className={styles.addressText}>{currentOrder.address || "—"}</div>
                   <span className={styles.addressDefaultTag}>Địa chỉ giao hàng</span>
                 </div>
-
               </div>
             </div>
           </div>
 
-          {/* SẢN PHẨM */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <span className={styles.cardHeaderIcon}>🛍️</span>
               <span className={styles.cardHeaderTitle}>
                 Sản phẩm ({currentOrder.items.length})
               </span>
-              <span className={styles.cardHeaderBadge}>
-                Đơn #{currentOrder.id}
-              </span>
+              <span className={styles.cardHeaderBadge}>Đơn #{currentOrder.id}</span>
             </div>
-
             <div className={styles.cardBody} style={{ padding: "0 20px" }}>
               <div className={styles.itemList}>
                 {currentOrder.items.map((item) => (
                   <div key={item.productId} className={styles.item}>
-
                     <div className={styles.itemLeft}>
                       {item.imageUrl ? (
                         <img
                           src={getImageSrc(item.imageUrl)}
                           className={styles.itemImg}
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
                         />
                       ) : (
                         <div className={styles.itemImgPlaceholder}>📱</div>
@@ -197,16 +140,13 @@ export default function PaymentPage() {
                         <span className={styles.itemQtyTag}>x{item.quantity}</span>
                       </div>
                     </div>
-
                     <div className={styles.itemPrice}>
                       {formatCurrencyVND(item.price * item.quantity)}
                     </div>
-
                   </div>
                 ))}
               </div>
             </div>
-
             <div className={styles.shippingRow}>
               <div className={styles.shippingRowLeft}>
                 <span>🚚</span>
@@ -216,7 +156,6 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* PHƯƠNG THỨC THANH TOÁN */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <span className={styles.cardHeaderIcon}>💳</span>
@@ -238,16 +177,11 @@ export default function PaymentPage() {
 
         </div>
 
-        {/* ================================= */}
-        {/* RIGHT                             */}
-        {/* ================================= */}
-
         <div className={styles.right}>
 
           <div className={styles.summary}>
             <div className={styles.summaryHeader}>Tổng thanh toán</div>
             <div className={styles.summaryBody}>
-
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>
                   Tạm tính ({currentOrder.items.length} sản phẩm)
@@ -256,14 +190,12 @@ export default function PaymentPage() {
                   {formatCurrencyVND(currentOrder.totalPrice)}
                 </span>
               </div>
-
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Phí vận chuyển</span>
                 <span style={{ color: "#26aa99", fontWeight: 700, fontSize: "14px" }}>
                   Miễn phí
                 </span>
               </div>
-
               {currentOrder.discount > 0 && (
                 <div className={styles.summaryRow}>
                   <span className={styles.summaryRowLabel}>Giảm giá voucher</span>
@@ -272,36 +204,32 @@ export default function PaymentPage() {
                   </span>
                 </div>
               )}
-
               <div className={styles.summaryDivider} />
-
               <div className={styles.summaryTotal}>
                 <span className={styles.summaryTotalLabel}>Tổng cộng</span>
                 <span className={styles.summaryTotalValue}>
                   {formatCurrencyVND(currentOrder.finalPrice)}
                 </span>
               </div>
-
               {currentOrder.discount > 0 && (
                 <p className={styles.savingsNote}>
                   🎉 Bạn tiết kiệm {formatCurrencyVND(currentOrder.discount)}
                 </p>
               )}
-
             </div>
           </div>
 
           <button
             className={styles.payBtn}
             onClick={handlePay}
-            disabled={payLoading || currentOrder.status !== "PENDING"}
+            disabled={payLoading || currentOrder.status !== "AWAITING_PAYMENT"}
           >
             {payLoading ? (
               <>
                 <span className={styles.payBtnIcon}>⏳</span>
                 Đang xử lý...
               </>
-            ) : currentOrder.status !== "PENDING" ? (
+            ) : currentOrder.status !== "AWAITING_PAYMENT" ? (
               "Không thể thanh toán"
             ) : (
               <>
@@ -311,7 +239,6 @@ export default function PaymentPage() {
             )}
           </button>
 
-          {/* Thanh toán sau → về trang quản lý đơn hàng, không về checkout */}
           <button
             className={styles.cancelBtn}
             onClick={() => navigate(`/orders/${currentOrder.id}`, { replace: true })}

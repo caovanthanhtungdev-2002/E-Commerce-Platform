@@ -11,10 +11,10 @@ import type {
 // ========== USER SERVICE ==========
 export const adminUserService = {
   async getAll(page = 0, size = 20) {
-  const res = await axiosInstance.get(`/api/admin/users?page=${page}&size=${size}`);
-  console.log("users response:", res.data); // xem structure
-  return Array.isArray(res.data) ? res.data : (res.data?.content ?? []);
-},
+    const res = await axiosInstance.get(`/api/admin/users?page=${page}&size=${size}`);
+    console.log("users response:", res.data);
+    return Array.isArray(res.data) ? res.data : (res.data?.content ?? []);
+  },
 
   async block(id: number) {
     await axiosInstance.patch(`/api/admin/users/${id}/block`);
@@ -22,6 +22,16 @@ export const adminUserService = {
 
   async activate(id: number) {
     await axiosInstance.patch(`/api/admin/users/${id}/activate`);
+  },
+
+ 
+  async assignRole(id: number, role: string) {
+    await axiosInstance.patch(`/api/admin/users/${id}/role`, { role });
+  },
+
+ 
+  async removeRole(id: number) {
+    await axiosInstance.delete(`/api/admin/users/${id}/role`);
   },
 
   async delete(id: number) {
@@ -127,8 +137,7 @@ export const adminDashboardService = {
   },
 
   async getCodReport() {
-  const res = await axiosInstance.get(`/api/admin/dashboard/cod`);
-  return res.data;
-},
-
+    const res = await axiosInstance.get(`/api/admin/dashboard/cod`);
+    return res.data;
+  },
 };

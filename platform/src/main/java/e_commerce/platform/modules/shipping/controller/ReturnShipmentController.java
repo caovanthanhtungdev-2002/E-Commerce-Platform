@@ -25,7 +25,7 @@ public class ReturnShipmentController {
      * GET /api/returns
      */
     @GetMapping
-@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+@PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
 public ResponseEntity<ApiResponse<Page<ReturnShipmentResponse>>> getAll(  
     @RequestParam(required = false) ReturnStatus status,
     @RequestParam(defaultValue = "0")  int page,

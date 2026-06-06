@@ -94,6 +94,10 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Invalid credentials");
         }
 
+         if (!user.isEnabled()) {
+        throw new UnauthorizedException("Tài khoản đã bị khóa");
+    }
+
         if (user.getStatus() == UserStatus.LOCKED) {
             throw new UnauthorizedException("Tài khoản đã bị khóa");
         }
@@ -123,31 +127,37 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // ================= REFRESH =================
-    @Override
-    public AuthResponse refresh(String refreshToken) {
+@Override
+public AuthResponse refresh(String refreshToken) {
 
-        String username = tokenService.verifyRefreshToken(refreshToken);
+    String username = tokenService.verifyRefreshToken(refreshToken);
 
-        tokenService.revokeToken(refreshToken);
-        String newRefreshToken = tokenService.createRefreshToken(username);
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BadRequestException("User not found"));
-
-        String newAccessToken = tokenService.generateAccessToken(
-                user.getUsername(),
-                user.getRole().name()
-        );
-
-        auditService.log(user.getUsername(), "REFRESH_TOKEN", "User refreshed token");
-
-        return AuthResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .role(user.getRole().name())
-                .user(AuthMapper.toUserResponse(user))
-                .build();
+    //Thêm check enabled — user bị khóa thì xóa token luôn
+    if (!user.isEnabled()) {
+        tokenService.revokeToken(refreshToken); // xóa khỏi Redis
+        throw new UnauthorizedException("Tài khoản đã bị khóa");
     }
+
+    tokenService.revokeToken(refreshToken);
+    String newRefreshToken = tokenService.createRefreshToken(username);
+
+    String newAccessToken = tokenService.generateAccessToken(
+            user.getUsername(),
+            user.getRole().name()
+    );
+
+    auditService.log(user.getUsername(), "REFRESH_TOKEN", "User refreshed token");
+
+    return AuthResponse.builder()
+            .accessToken(newAccessToken)
+            .refreshToken(newRefreshToken)
+            .role(user.getRole().name())
+            .user(AuthMapper.toUserResponse(user))
+            .build();
+}
 
     // ================= LOGOUT =================
     @Override

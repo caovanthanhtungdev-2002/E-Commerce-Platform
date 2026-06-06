@@ -19,8 +19,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -30,7 +32,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
-    private final CorsConfigurationSource corsConfigurationSource; // ← inject từ CorsConfig
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,16 +40,13 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(csrf -> csrf.disable())
-
             .exceptionHandling(ex -> ex
                     .authenticationEntryPoint(authenticationEntryPoint)
                     .accessDeniedHandler(accessDeniedHandler)
             )
-
             .sessionManagement(session -> session
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-
             .authorizeHttpRequests(auth -> auth
 
                     // PREFLIGHT
@@ -74,7 +73,13 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/cart").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/products/search").permitAll()
 
-                    // Admin + Root
+                    
+                    .requestMatchers(HttpMethod.GET, "/api/admin/inventory/**")
+                        .hasAnyRole("ROOT", "ADMIN", "MANAGER", "WAREHOUSE")
+                    .requestMatchers(HttpMethod.PATCH, "/api/admin/inventory/**")
+                        .hasAnyRole("ROOT", "ADMIN", "WAREHOUSE")
+
+                    // Admin routes
                     .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "ROOT")
                     .requestMatchers(HttpMethod.POST,   "/api/products/**").hasAnyRole("ADMIN", "ROOT")
                     .requestMatchers(HttpMethod.PUT,    "/api/products/**").hasAnyRole("ADMIN", "ROOT")
@@ -82,14 +87,14 @@ public class SecurityConfig {
 
                     // Shipments
                     .requestMatchers(HttpMethod.GET,    "/api/shipments/**").authenticated()
-                    .requestMatchers(HttpMethod.POST,   "/api/shipments/**").hasAnyRole("ADMIN", "STAFF")
-                    .requestMatchers(HttpMethod.PATCH,  "/api/shipments/**").hasAnyRole("ADMIN", "STAFF")
-                    .requestMatchers(HttpMethod.DELETE, "/api/shipments/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST,   "/api/shipments/**").hasAnyRole("ADMIN", "ROOT")
+                    .requestMatchers(HttpMethod.PATCH,  "/api/shipments/**").hasAnyRole("ADMIN", "ROOT")
+                    .requestMatchers(HttpMethod.DELETE, "/api/shipments/**").hasAnyRole("ADMIN", "ROOT")
 
                     // Returns
                     .requestMatchers(HttpMethod.GET,   "/api/returns/**").authenticated()
                     .requestMatchers(HttpMethod.POST,  "/api/returns/**").authenticated()
-                    .requestMatchers(HttpMethod.PATCH, "/api/returns/**").hasAnyRole("ADMIN", "STAFF")
+                    .requestMatchers(HttpMethod.PATCH, "/api/returns/**").hasAnyRole("ADMIN", "ROOT")
 
                     // User
                     .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "ROOT")

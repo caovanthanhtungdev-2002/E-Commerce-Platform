@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axiosInstance from "@/config/axios";
 import { useCartStore } from "@/features/cart/store/cartStore";
+import { cancelOrder } from "@/features/payment/services/paymentService";
 import styles from "./PaymentResultPage.module.css";
 
 type Status = "loading" | "success" | "failed" | "error";
@@ -12,57 +13,54 @@ export default function PaymentResultPage() {
   const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
-    const allParams: Record<string, string> = {};
-    searchParams.forEach((value, key) => {
-      allParams[key] = value;
-    });
+  const allParams: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    allParams[key] = value;
+  });
 
-    const responseCode = allParams["vnp_ResponseCode"];
-    const isSuccess = responseCode === "00";
+  const responseCode = allParams["vnp_ResponseCode"];
+  const isSuccess = responseCode === "00";
+  const query = new URLSearchParams(allParams).toString();
 
-    const query = new URLSearchParams(allParams).toString();
+  axiosInstance
+    .get(`/api/payments/vnpay/callback?${query}`)
+    .then(async (res) => {
+      const orderId = res.data;
 
-    axiosInstance
-      .get(`/api/payments/vnpay/callback?${query}`)
-      .then(async (res) => {
-        const orderId = res.data;
-
-        if (
-          !orderId ||
-          orderId === "INVALID_SIGNATURE" ||
-          orderId === "INVALID_PARAMS"
-        ) {
-          setStatus("error");
-          return;
-        }
-
-        if (isSuccess) {
-          setStatus("success");
-
-          // Chỉ xóa các sản phẩm thuộc order vừa thanh toán
-          try {
-            const orderRes = await axiosInstance.get(`/api/orders/${orderId}`);
-            const orderItems = orderRes.data?.data?.items ?? [];
-
-            const { removeFromCart } = useCartStore.getState();
-            for (const item of orderItems) {
-              await removeFromCart(item.productId);
-            }
-          } catch (err) {
-            console.error("Không thể xóa sản phẩm khỏi giỏ hàng:", err);
-          }
-        } else {
-          setStatus("failed");
-        }
-
-        setTimeout(() => {
-          navigate(`/orders/${orderId}`);
-        }, 1500);
-      })
-      .catch(() => {
+      if (!orderId || orderId === "INVALID_SIGNATURE" || orderId === "INVALID_PARAMS") {
         setStatus("error");
-      });
-  }, []);
+        return;
+      }
+
+      if (isSuccess) {
+        setStatus("success");
+        try {
+          const orderRes = await axiosInstance.get(`/api/orders/${orderId}`);
+          const orderItems = orderRes.data?.data?.items ?? [];
+          const { removeFromCart } = useCartStore.getState();
+          for (const item of orderItems) {
+            await removeFromCart(item.productId);
+          }
+        } catch (err) {
+          console.error("Không thể xóa sản phẩm khỏi giỏ hàng:", err);
+        }
+      } else {
+        try {
+          await cancelOrder(orderId);
+        } catch (err) {
+          console.error("Không thể hủy đơn hàng:", err);
+        }
+        setStatus("failed");
+      }
+
+      setTimeout(() => {
+        navigate(`/orders/${orderId}`);
+      }, 1500);
+    })
+    .catch(() => {
+      setStatus("error");
+    });
+}, []);
 
   return (
     <div className={styles.container}>

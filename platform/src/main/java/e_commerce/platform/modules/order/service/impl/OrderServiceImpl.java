@@ -130,7 +130,9 @@ public class OrderServiceImpl implements OrderService {
                 .discount(discount)
                 .finalPrice(finalPrice)
                 .couponCode(couponCode)
-                .status(OrderStatus.PENDING)
+                .status("VNPAY".equalsIgnoreCase(request.getPaymentMethod())
+    ? OrderStatus.AWAITING_PAYMENT
+    : OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .receiverName(request.getReceiverName())
                 .phone(request.getPhone())
@@ -164,7 +166,8 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if (order.getStatus() != OrderStatus.PENDING
-                && order.getStatus() != OrderStatus.PAID) {
+        && order.getStatus() != OrderStatus.PAID
+        && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
             throw new BadRequestException("Chỉ xác nhận được đơn PENDING hoặc PAID");
         }
 
@@ -286,10 +289,10 @@ public class OrderServiceImpl implements OrderService {
             }
 
             case "CANCELLED" -> {
-                if (order.getStatus() != OrderStatus.PENDING) {
-                    throw new BadRequestException(
-                        "Khách chỉ hủy được đơn khi đang PENDING");
-                }
+                if (order.getStatus() != OrderStatus.PENDING
+            && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
+        throw new BadRequestException("Khách chỉ hủy được đơn khi đang PENDING hoặc AWAITING_PAYMENT");
+    }
                 // Hoàn lại tồn kho khi hủy
                 order.getItems().forEach(item ->
                     inventoryService.releaseStock(

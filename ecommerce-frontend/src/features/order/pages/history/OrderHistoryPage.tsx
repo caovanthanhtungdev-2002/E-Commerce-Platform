@@ -7,6 +7,7 @@ import styles from "./OrderHistoryPage.module.css";
 import { formatDate } from '@/utils/dateUtils';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
+  AWAITING_PAYMENT: { label: "Chờ thanh toán", color: "#ea580c" },
   PENDING:    { label: "Chờ xác nhận",            color: "#ea580c" },
   CONFIRMED:  { label: "Đang chuẩn bị hàng",      color: "#2563eb" },
   PROCESSING: { label: "Đang đóng gói",            color: "#7c3aed" },

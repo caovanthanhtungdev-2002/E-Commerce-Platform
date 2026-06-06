@@ -1,13 +1,14 @@
 
 package e_commerce.platform.modules.user.repository;
 
-import e_commerce.platform.modules.user.entity.UserSession;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-import java.util.List;
-import java.util.Optional;
+import e_commerce.platform.modules.user.entity.UserSession;
 
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
@@ -15,6 +16,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
 
     List<UserSession> findByUserIdAndActiveTrue(Long userId);
 
+    boolean existsByTokenAndActiveTrue(String token);
+    
     @Modifying
     @Query("UPDATE UserSession s SET s.active = false WHERE s.user.id = :userId")
     void deactivateAllByUserId(Long userId);

@@ -1,7 +1,10 @@
 package e_commerce.platform.security.jwt;
 
-import java.io.IOException;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.*;
@@ -9,10 +12,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -27,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-
         try {
             String token = extractToken(request);
 
@@ -40,6 +40,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     UserDetails userDetails =
                             userDetailsService.loadUserByUsername(username);
+
+                    // Kiểm tra enabled — nếu bị khóa thì chặn luôn, không cho tiếp tục
+                    if (!userDetails.isEnabled()) {
+                        sendBlockedResponse(response);
+                        return; // ← không gọi filterChain tiếp
+                    }
 
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(
@@ -63,13 +69,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private void sendBlockedResponse(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String body = new ObjectMapper().writeValueAsString(Map.of(
+                "success", false,
+                "message", "Tài khoản đã bị khóa. Vui lòng liên hệ admin."
+        ));
+
+        response.getWriter().write(body);
+    }
+
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
-
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
-
         return null;
     }
 }

@@ -38,10 +38,10 @@ public class ShipmentController {
     private final ShipmentService shipmentService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
     public ResponseEntity<ApiResponse<Page<ShipmentResponse>>> getAll(
         @RequestParam(required = false) ShipmentStatus status,
-        @RequestParam(required = false) String carrier,
+        @RequestParam(required = false) String carrier,                                                                                                                                                                                                                                                                                                                                                                                 
         @RequestParam(required = false) String search,
         @RequestParam(defaultValue = "0")           int page,
         @RequestParam(defaultValue = "15")          int size,

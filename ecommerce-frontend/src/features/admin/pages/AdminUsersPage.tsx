@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAdminUserStore } from "../store/adminStores";
+import { useAuthStore } from "../../auth/store/authStore";
 import styles from "./AdminPage.module.css";
 
+const ROLES = ["USER", "STAFF", "WAREHOUSE", "SHIPPER", "MANAGER", "ADMIN"];
+
 export default function AdminUsersPage() {
-  const { users, loading, fetch, block, activate, remove } = useAdminUserStore();
+  const { users, loading, fetch, block, activate, remove, assignRole, removeRole } = useAdminUserStore();
+  const currentUser = useAuthStore(state => state.user);
+  const isRoot = currentUser?.role === "ROOT";
   const [page, setPage] = useState(0);
 
   useEffect(() => { fetch(page); }, [page]);
@@ -26,6 +31,24 @@ export default function AdminUsersPage() {
     } catch {
       alert("Xóa thất bại");
     }
+  };
+
+  const handleRoleChange = async (id: number, role: string) => {
+    try {
+      if (role === "") await removeRole(id);
+      else await assignRole(id, role);
+      fetch(page);
+    } catch (err: any) {
+      console.error("Phân quyền lỗi:", err?.response?.status, err?.response?.data);
+      alert("Phân quyền thất bại");
+    }
+  };
+
+  // ROOT được đụng ADMIN, không ai được đụng ROOT
+  const isDisabled = (targetRole: string) => {
+    if (targetRole === "ROOT") return true;
+    if (targetRole === "ADMIN" && !isRoot) return true;
+    return false;
   };
 
   return (
@@ -65,9 +88,17 @@ export default function AdminUsersPage() {
                 <td className={styles.tdMuted}>{u.email}</td>
                 <td className={styles.tdMuted}>{u.phone || "—"}</td>
                 <td>
-                  <span className={`${styles.badge} ${u.role === "ADMIN" ? styles.badgeShipped : styles.badgePaid}`}>
-                    {u.role}
-                  </span>
+                  <select
+                    value={u.role ?? ""}
+                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                    className={styles.roleSelect}
+                    disabled={isDisabled(u.role)}
+                  >
+                    <option value="">-- Không có --</option>
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 </td>
                 <td>
                   <span className={`${styles.badge} ${u.enabled ? styles.badgeActive : styles.badgeInactive}`}>
@@ -79,12 +110,16 @@ export default function AdminUsersPage() {
                     <button
                       className={styles.btnToggle}
                       onClick={() => handleToggle(u.id, u.enabled)}
+                      disabled={isDisabled(u.role)}
+                      style={{ opacity: isDisabled(u.role) ? 0.4 : 1 }}
                     >
                       {u.enabled ? "🔒 Khóa" : "✅ Mở"}
                     </button>
                     <button
                       className={styles.btnDel}
                       onClick={() => handleDelete(u.id, u.fullName || u.username)}
+                      disabled={isDisabled(u.role)}
+                      style={{ opacity: isDisabled(u.role) ? 0.4 : 1 }}
                     >
                       Xóa
                     </button>

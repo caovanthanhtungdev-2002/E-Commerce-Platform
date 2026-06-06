@@ -8,6 +8,8 @@ interface AdminUserState {
   fetch: (page?: number, size?: number) => Promise<void>;
   block: (id: number) => Promise<void>;
   activate: (id: number) => Promise<void>;
+  assignRole: (id: number, role: string) => Promise<void>;
+  removeRole: (id: number) => Promise<void>;
   remove: (id: number) => Promise<void>;
 }
 
@@ -25,15 +27,9 @@ export const useAdminUserStore = create<AdminUserState>((set) => ({
     }
   },
 
-  block: async (id) => {
-    await adminUserService.block(id);
-  },
-
-  activate: async (id) => {
-    await adminUserService.activate(id);
-  },
-
-  remove: async (id) => {
-    await adminUserService.delete(id);
-  },
+  block:      async (id)        => { await adminUserService.block(id); },
+  activate:   async (id)        => { await adminUserService.activate(id); },
+  assignRole: async (id, role)  => { await adminUserService.assignRole(id, role); },
+  removeRole: async (id)        => { await adminUserService.removeRole(id); },
+  remove:     async (id)        => { await adminUserService.delete(id); },
 }));

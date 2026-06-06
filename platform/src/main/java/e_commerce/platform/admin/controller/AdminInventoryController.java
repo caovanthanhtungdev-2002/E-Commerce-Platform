@@ -3,6 +3,9 @@ package e_commerce.platform.admin.controller;
 import e_commerce.platform.admin.service.AdminInventoryService;
 import e_commerce.platform.modules.inventory.dto.InventoryDTO;
 import lombok.RequiredArgsConstructor;
+
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,7 +16,8 @@ import java.util.List;
 public class AdminInventoryController {
 
     private final AdminInventoryService inventoryService;
-
+    
+// WAREHOUSE + ADMIN + ROOT xem được
     @GetMapping
     public List<InventoryDTO> getAll() {
         return inventoryService.getAllInventories();
@@ -40,7 +44,8 @@ public class AdminInventoryController {
     }
 
     @PatchMapping("/{id}/set")
-    public void set(@PathVariable Long id, @RequestParam int quantity) {
-        inventoryService.setStock(id, quantity);
-    }
+@PreAuthorize("hasAnyRole('ADMIN', 'ROOT')")
+public void set(@PathVariable Long id, @RequestParam int quantity) {
+    inventoryService.setStock(id, quantity);
+}
 }

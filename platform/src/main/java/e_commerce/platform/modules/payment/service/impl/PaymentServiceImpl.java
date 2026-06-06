@@ -50,9 +50,9 @@ public CreatePaymentResponse createPayment(Long orderId) {
         throw new BadRequestException("Đơn COD không cần tạo link thanh toán");
     }
 
-    if (order.getStatus() != OrderStatus.PENDING) {
-        throw new BadRequestException("Order is not in PENDING state. Current: " + order.getStatus());
-    }
+    if (order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
+    throw new BadRequestException("Order is not in AWAITING_PAYMENT state. Current: " + order.getStatus());
+}
 
     // Lấy payment mới nhất
     Payment latestPayment = paymentRepository
@@ -166,11 +166,13 @@ public CreatePaymentResponse createPayment(Long orderId) {
 } else {
     payment.setStatus(PaymentStatus.FAILED);
     payment.setTransactionId(transactionId);
+    
+   
+    order.setStatus(OrderStatus.AWAITING_PAYMENT);
 
     log.info("[PAYMENT] FAILED: paymentId={}, orderId={}, responseCode={}",
         payment.getId(), order.getId(), responseCode);
 
-    //Notify FAILED
     orderNotificationService.notifyPaymentResult(
         order.getUsername(), order.getId(), false, transactionId);
 }

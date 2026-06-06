@@ -80,7 +80,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         Order order = findOrderById(orderId);
 
         if (order.getStatus() != OrderStatus.PENDING
-                && order.getStatus() != OrderStatus.PAID) {
+                && order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.AWAITING_PAYMENT){
             throw new BadRequestException(
                 "Chỉ xác nhận được đơn PENDING hoặc PAID. Status hiện tại: "
                 + order.getStatus());
@@ -262,6 +263,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     private void validateStatusTransition(OrderStatus current, OrderStatus next) {
         boolean valid = switch (current) {
+            case AWAITING_PAYMENT -> next == OrderStatus.CANCELLED;  
+
             case PENDING    -> next == OrderStatus.CONFIRMED
                             || next == OrderStatus.CANCELLED;
             case CONFIRMED  -> next == OrderStatus.PROCESSING
