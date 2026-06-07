@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminOrderStore } from "../store/adminStores";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
-import type { OrderStatus } from "../types/adminTypes";
+import type { OrderStatus, ShipOrderRequest } from "../types/adminTypes";
 import styles from "./AdminPage.module.css";
+
+
+const CARRIERS = ["GHN", "GHTK", "Viettel Post", "J&T Express", "Ninja Van", "Khác"];
+
+
 
 const STATUS_OPTIONS: OrderStatus[] = [
   "PENDING",
@@ -54,6 +59,13 @@ export default function AdminOrdersPage() {
   const [cancelId, setCancelId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
+  const [shipId, setShipId] = useState<number | null>(null);
+const [shipForm, setShipForm] = useState<ShipOrderRequest>({
+  carrier: "GHN",
+  shippingFee: 0,
+  trackingNumber: "",
+});
+
   useEffect(() => {
     if (filterStatus || filterUsername) {
       filterOrders({
@@ -92,14 +104,20 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const handleShip = async (id: number) => {
-    try {
-      await shipOrder(id);
-      fetchOrders(page);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || "Giao vận thất bại");
-    }
-  };
+  const handleShip = async () => {
+  if (!shipId) return;
+  if (!shipForm.carrier) { alert("Vui lòng chọn đơn vị vận chuyển"); return; }
+  try {
+    await shipOrder(shipId, {
+      ...shipForm,
+      trackingNumber: shipForm.trackingNumber?.trim() || undefined,
+    });
+    setShipId(null);
+    fetchOrders(page);
+  } catch (err: any) {
+    alert(err?.response?.data?.message || "Giao vận thất bại");
+  }
+};
 
   const handleDeliver = async (id: number) => {
     try {
@@ -240,15 +258,14 @@ export default function AdminOrdersPage() {
                     )}
 
                     {/* PROCESSING: Giao hàng (không có Hủy) */}
-                    {o.status === "PROCESSING" && (
-                      <button className={styles.btnToggle} onClick={() => handleShip(o.id)}>
-                        🚚 Giao hàng
-                      </button>
-                    )}
-
-                 
-                    
-
+                   {o.status === "PROCESSING" && (
+  <button className={styles.btnToggle} onClick={() => {
+    setShipId(o.id);
+    setShipForm({ carrier: "GHN", shippingFee: 0, trackingNumber: "" });
+  }}>
+    🚚 Giao hàng
+  </button>
+)}
                     {/* DELIVERED: Hoàn thành + Xem vận đơn + Hoàn */}
                     {o.status === "DELIVERED" && (
                       <button
@@ -330,6 +347,53 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+
+      {shipId && (
+  <div className={styles.overlay} onClick={() => setShipId(null)}>
+    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modalHeader}>
+        <h3>Tạo vận đơn #{shipId}</h3>
+        <button className={styles.closeBtn} onClick={() => setShipId(null)}>✕</button>
+      </div>
+      <div className={styles.modalBody}>
+
+        <label className={styles.label}>Đơn vị vận chuyển *</label>
+        <select
+          className={styles.input}
+          value={shipForm.carrier}
+          onChange={(e) => setShipForm(f => ({ ...f, carrier: e.target.value }))}
+        >
+          {CARRIERS.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <label className={styles.label}>Phí vận chuyển (VND) *</label>
+        <input
+          className={styles.input}
+          type="number"
+          min={0}
+          value={shipForm.shippingFee}
+          onChange={(e) => setShipForm(f => ({ ...f, shippingFee: Number(e.target.value) }))}
+        />
+
+        <label className={styles.label}>Mã vận đơn (để trống để tự sinh)</label>
+        <input
+          className={styles.input}
+          type="text"
+          placeholder="VD: GHN123456789"
+          value={shipForm.trackingNumber || ""}
+          onChange={(e) => setShipForm(f => ({ ...f, trackingNumber: e.target.value }))}
+        />
+
+      </div>
+      <div className={styles.modalFooter}>
+        <button className={styles.btnCancel} onClick={() => setShipId(null)}>Hủy</button>
+        <button className={styles.btnPrimary} onClick={handleShip}>🚚 Xác nhận giao hàng</button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

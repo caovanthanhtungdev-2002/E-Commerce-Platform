@@ -12,6 +12,7 @@ import e_commerce.platform.modules.order.enums.OrderStatus;
 import e_commerce.platform.modules.order.repository.OrderRepository;
 import e_commerce.platform.modules.order.service.OrderNotificationService;
 import e_commerce.platform.modules.shipping.dto.request.CreateShipmentRequest;
+import e_commerce.platform.modules.shipping.dto.request.ShipOrderRequest;
 import e_commerce.platform.modules.shipping.entity.ShippingAddress;
 import e_commerce.platform.modules.shipping.repository.ShippingAddressRepository;
 import e_commerce.platform.modules.shipping.service.ShipmentService;
@@ -204,41 +205,44 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     // ================= SHIP =================
     @Override
-    public void shipOrder(Long orderId) {
-        Order order = findOrderById(orderId);
-        if (order.getStatus() != OrderStatus.PROCESSING) {
-            throw new BadRequestException(
-                "Only PROCESSING orders can be shipped. Current: " + order.getStatus());
-        }
-        order.setStatus(OrderStatus.SHIPPED);
-        orderRepository.save(order);
-
-        // Tạo ShippingAddress từ thông tin order
-        ShippingAddress address = ShippingAddress.builder()
-            .userId(String.valueOf(order.getUserId()))
-            .receiverName(order.getReceiverName() != null
-                ? order.getReceiverName() : order.getUsername())
-            .receiverPhone(order.getPhone() != null ? order.getPhone() : "")
-            .addressLine(order.getAddress() != null ? order.getAddress() : "")
-            .country("Vietnam")
-            .note("Tự động tạo từ đơn hàng #" + orderId)
-            .build();
-        ShippingAddress savedAddress = shippingAddressRepository.save(address);
-
-        // Tạo Shipment record — admin cập nhật carrier/tracking thật sau
-        CreateShipmentRequest req = CreateShipmentRequest.builder()
-            .orderId(String.valueOf(orderId))
-            .carrier("Chưa xác định")
-            .trackingNumber("ORD-" + orderId + "-" + System.currentTimeMillis())
-            .shippingFee(BigDecimal.ZERO)
-            .shippingAddressId(savedAddress.getId())
-            .note("Tạo tự động từ đơn hàng #" + orderId)
-            .build();
-        shipmentService.create(req);
-
-        orderNotificationService.notifyOrderUpdated(
-            order.getUsername(), order.getId(), order.getStatus().name());
+public void shipOrder(Long orderId, ShipOrderRequest request) {
+    Order order = findOrderById(orderId);
+    if (order.getStatus() != OrderStatus.PROCESSING) {
+        throw new BadRequestException(
+            "Only PROCESSING orders can be shipped. Current: " + order.getStatus());
     }
+    order.setStatus(OrderStatus.SHIPPED);
+    orderRepository.save(order);
+
+    ShippingAddress address = ShippingAddress.builder()
+        .userId(String.valueOf(order.getUserId()))
+        .receiverName(order.getReceiverName() != null
+            ? order.getReceiverName() : order.getUsername())
+        .receiverPhone(order.getPhone() != null ? order.getPhone() : "")
+        .addressLine(order.getAddress() != null ? order.getAddress() : "")
+        .country("Vietnam")
+        .note("Tự động tạo từ đơn hàng #" + orderId)
+        .build();
+    ShippingAddress savedAddress = shippingAddressRepository.save(address);
+
+    String trackingNumber = (request.getTrackingNumber() != null
+            && !request.getTrackingNumber().isBlank())
+        ? request.getTrackingNumber()
+        : "ORD-" + orderId + "-" + System.currentTimeMillis();
+
+    CreateShipmentRequest req = CreateShipmentRequest.builder()
+        .orderId(String.valueOf(orderId))
+        .carrier(request.getCarrier())
+        .trackingNumber(trackingNumber)
+        .shippingFee(request.getShippingFee())
+        .shippingAddressId(savedAddress.getId())
+        .note("Tạo tự động từ đơn hàng #" + orderId)
+        .build();
+    shipmentService.create(req);
+
+    orderNotificationService.notifyOrderUpdated(
+        order.getUsername(), order.getId(), order.getStatus().name());
+}
 
     // ================= DELIVER =================
     @Override

@@ -2,6 +2,7 @@ package e_commerce.platform.admin.service;
 
 import e_commerce.platform.admin.dto.response.AdminOrderResponse;
 import e_commerce.platform.modules.order.enums.OrderStatus;
+import e_commerce.platform.modules.shipping.dto.request.ShipOrderRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +29,7 @@ public interface AdminOrderService {
     void confirmOrder(Long orderId);
     void processOrder(Long orderId);
     
-void shipOrder(Long orderId);
 void deliverOrder(Long orderId);
+
+void shipOrder(Long orderId, ShipOrderRequest request);
 }

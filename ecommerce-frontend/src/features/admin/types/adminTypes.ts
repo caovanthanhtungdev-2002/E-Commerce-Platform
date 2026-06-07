@@ -76,6 +76,11 @@ export interface UpdateCategoryRequest {
   description?: string;
 }
 
+export interface ShipOrderRequest {
+  carrier: string;
+  shippingFee: number;
+  trackingNumber?: string;
+}
 // ========== ORDER ==========
 export type OrderStatus =
   | "PENDING"
@@ -173,3 +178,4 @@ export interface CodReport {
   orders: number;
   byDay: [string, number][];
 }
+

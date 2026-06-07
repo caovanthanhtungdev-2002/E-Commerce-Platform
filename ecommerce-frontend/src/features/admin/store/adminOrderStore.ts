@@ -18,9 +18,9 @@ interface AdminOrderState {
   refund: (id: number) => Promise<void>;
   remove: (id: number) => Promise<void>;
   process: (id: number) => Promise<void>;
-  ship: (id: number) => Promise<void>;
+  ship: (id: number, data: ShipOrderRequest) => Promise<void>;
   deliver: (id: number) => Promise<void>;
-  complete: (id: number) => Promise<void>; // ← thêm
+  complete: (id: number) => Promise<void>; 
 }
 
 export const useAdminOrderStore = create<AdminOrderState>((set) => ({
@@ -71,9 +71,9 @@ export const useAdminOrderStore = create<AdminOrderState>((set) => ({
     await adminOrderService.process(id);
   },
 
-  ship: async (id) => {
-    await adminOrderService.ship(id);
-  },
+  ship: async (id, data) => {
+  await adminOrderService.ship(id, data);
+},
 
   deliver: async (id) => {
     await adminOrderService.deliver(id);

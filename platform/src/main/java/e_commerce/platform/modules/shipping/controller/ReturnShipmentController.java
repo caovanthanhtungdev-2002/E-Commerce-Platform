@@ -60,7 +60,7 @@ public ResponseEntity<ApiResponse<Page<ReturnShipmentResponse>>> getAll(
      * Admin duyệt / từ chối / hoàn thành
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
     public ResponseEntity<ReturnShipmentResponse> updateStatus(
         @PathVariable String id,
         @Valid @RequestBody UpdateReturnStatusRequest request

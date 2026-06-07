@@ -4,7 +4,8 @@ import e_commerce.platform.admin.dto.response.AdminOrderResponse;
 import e_commerce.platform.admin.service.AdminOrderService;
 import e_commerce.platform.common.response.ApiResponse;
 import e_commerce.platform.modules.order.enums.OrderStatus;
-
+import e_commerce.platform.modules.shipping.dto.request.ShipOrderRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -122,8 +123,10 @@ public ResponseEntity<Void> processOrder(@PathVariable Long orderId) {
 }
 
 @PatchMapping("/{orderId}/ship")
-public ResponseEntity<Void> shipOrder(@PathVariable Long orderId) {
-    orderService.shipOrder(orderId);
+public ResponseEntity<Void> shipOrder(
+        @PathVariable Long orderId,
+        @RequestBody @Valid ShipOrderRequest request) {
+    orderService.shipOrder(orderId, request);
     return ResponseEntity.ok().build();
 }
 

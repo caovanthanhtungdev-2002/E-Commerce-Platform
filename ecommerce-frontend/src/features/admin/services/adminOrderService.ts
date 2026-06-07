@@ -57,8 +57,8 @@ export const adminOrderService = {
   await axiosInstance.patch(`/api/admin/orders/${id}/process`);
 },
 
-async ship(id: number) {
-  await axiosInstance.patch(`/api/admin/orders/${id}/ship`);
+async ship(id: number, data: ShipOrderRequest) {
+  await axiosInstance.patch(`/api/admin/orders/${id}/ship`, data);
 },
 
 async deliver(id: number) {
