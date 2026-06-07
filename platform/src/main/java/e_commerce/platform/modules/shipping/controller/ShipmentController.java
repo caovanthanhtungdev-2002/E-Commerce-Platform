@@ -38,7 +38,7 @@ public class ShipmentController {
     private final ShipmentService shipmentService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT','SHIPPER')")
     public ResponseEntity<ApiResponse<Page<ShipmentResponse>>> getAll(
         @RequestParam(required = false) ShipmentStatus status,
         @RequestParam(required = false) String carrier,                                                                                                                                                                                                                                                                                                                                                                                 
@@ -58,7 +58,7 @@ public class ShipmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT','SHIPPER')")
     public ResponseEntity<ApiResponse<ShipmentResponse>> getById(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.success("Success", shipmentService.getById(id)));
     }
@@ -69,7 +69,7 @@ public class ShipmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT','SHIPPER')")
     public ResponseEntity<ApiResponse<ShipmentResponse>> create(
         @Valid @RequestBody CreateShipmentRequest request
     ) {
@@ -78,7 +78,7 @@ public class ShipmentController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
     public ResponseEntity<ApiResponse<ShipmentResponse>> updateStatus(
         @PathVariable String id,
         @Valid @RequestBody UpdateShipmentStatusRequest request
@@ -89,7 +89,7 @@ public class ShipmentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN','ROOT')")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         shipmentService.delete(id);
         return ResponseEntity.noContent().build(); // 204 — không cần wrap
@@ -107,7 +107,7 @@ public class ShipmentController {
     }
 
     @PostMapping("/{shipmentId}/tracking")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF','ROOT')")
     public ResponseEntity<ApiResponse<TrackingEventResponse>> addTracking(
         @PathVariable String shipmentId,
         @Valid @RequestBody AddTrackingEventRequest request

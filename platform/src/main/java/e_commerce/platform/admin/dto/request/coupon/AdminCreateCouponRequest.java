@@ -1,8 +1,7 @@
-package e_commerce.platform.admin.dto.request;
+package e_commerce.platform.admin.dto.request.coupon;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 @Data
@@ -11,18 +10,19 @@ public class AdminCreateCouponRequest {
     @NotBlank
     private String code;
 
+    private String discountType = "PERCENT";
+
     @Min(0)
-    @Max(100)
-    private Integer discountPercent;
+    private double discountValue;
+
+    @Min(0)
+    private Double minOrderAmount;
 
     @Min(0)
     private Double maxDiscount;
 
-    @Min(0)
-    private Double minOrderValue;
-
-    @Future
-    private LocalDateTime expiryDate;
+    @NotNull
+    private LocalDateTime expiresAt;
 
     @Min(1)
     private Integer usageLimit;

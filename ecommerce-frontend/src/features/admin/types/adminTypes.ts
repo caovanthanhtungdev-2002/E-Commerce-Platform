@@ -137,7 +137,7 @@ export interface AdminCoupon {
   usageLimit?: number;
   usedCount: number;
   active: boolean;
-  expiresAt?: string;
+   expiresAt?: string | number[];
 }
 
 export interface CreateCouponRequest {

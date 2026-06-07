@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAdminCouponStore } from "../store/adminStores";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import type { AdminCoupon, CreateCouponRequest } from "../types/adminTypes";
+import { formatDate } from "@/utils/dateUtils";
 import styles from "./AdminPage.module.css";
 
 const EMPTY_FORM: CreateCouponRequest = {
@@ -20,12 +21,21 @@ export default function AdminCouponsPage() {
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true); };
 
+  const toInputDate = (dt: any): string => {
+  if (!dt) return "";
+  if (Array.isArray(dt)) {
+    const [y, m, d] = dt;
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  return String(dt).slice(0, 10);
+};
+
   const openEdit = (c: AdminCoupon) => {
     setEditing(c);
     setForm({
       code: c.code, discountType: c.discountType, discountValue: c.discountValue,
       minOrderAmount: c.minOrderAmount, maxDiscount: c.maxDiscount,
-      usageLimit: c.usageLimit, expiresAt: c.expiresAt,
+      usageLimit: c.usageLimit, expiresAt: toInputDate(c.expiresAt),
     });
     setShowModal(true);
   };
@@ -99,7 +109,7 @@ export default function AdminCouponsPage() {
                   </span>
                 </td>
                 <td className={styles.tdMuted}>
-                  {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString("vi-VN") : "—"}
+                  {formatDate(c.expiresAt)}
                 </td>
                 <td>
                   <div className={styles.actions}>
@@ -153,7 +163,12 @@ export default function AdminCouponsPage() {
 
               <label className={styles.label}>Ngày hết hạn</label>
               <input className={styles.input} type="date" value={form.expiresAt?.slice(0, 10) || ""}
-                onChange={(e) => setForm(f => ({ ...f, expiresAt: e.target.value || undefined }))} />
+                onChange={(e) =>
+  setForm(f => ({
+    ...f,
+    expiresAt: e.target.value ? `${e.target.value}T23:59:59` : undefined
+  }))
+} />
             </div>
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setShowModal(false)}>Hủy</button>
