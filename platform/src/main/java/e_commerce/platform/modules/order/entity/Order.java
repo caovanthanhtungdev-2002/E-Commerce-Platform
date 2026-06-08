@@ -59,6 +59,8 @@ public class Order {
 
 private String paymentMethod;
 
+private Double shippingFee = 0.0;  
+
     @Column
     private LocalDateTime paidAt;
 

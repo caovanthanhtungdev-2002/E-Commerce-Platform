@@ -15,6 +15,8 @@ public class CreateOrderRequest {
     private String address;
 
     private String paymentMethod;
+    
+    private Double shippingFee = 0.0; 
 
     private List<Long> selectedProductIds;
 
@@ -24,6 +26,7 @@ public class CreateOrderRequest {
     public static class BuyNowItem {
         private Long productId;
         private Integer quantity;
+         
     }
     
 }

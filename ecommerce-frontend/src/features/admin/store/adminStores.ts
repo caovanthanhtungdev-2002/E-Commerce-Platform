@@ -112,7 +112,7 @@ interface AdminOrderState {
   updateStatus: (id: number, status: OrderStatus) => Promise<void>;
   confirm: (id: number) => Promise<void>;  
   process: (id: number) => Promise<void>;
-ship: (id: number, data: ShipOrderRequest) => Promise<void>;
+ship: (id: number, carrier: string, trackingNumber: string, note?: string) => Promise<void>;
 deliver: (id: number) => Promise<void>;
   cancel: (id: number, reason: string) => Promise<void>;
   refund: (id: number) => Promise<void>;
@@ -168,8 +168,8 @@ export const useAdminOrderStore = create<AdminOrderState>((set) => ({
   await adminOrderService.process(id);
 },
 
-ship: async (id, data) => {
-  await adminOrderService.ship(id, data);
+ship: async (id, carrier, trackingNumber, note) => {
+  await adminOrderService.ship(id, carrier, trackingNumber, note);
 },
 
 deliver: async (id) => {

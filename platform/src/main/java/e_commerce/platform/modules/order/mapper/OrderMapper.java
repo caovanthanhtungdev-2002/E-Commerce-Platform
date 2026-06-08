@@ -26,6 +26,7 @@ public class OrderMapper {
                 .paymentMethod(order.getPaymentMethod())
                 .createdAt(order.getCreatedAt())   
                 .updatedAt(order.getUpdatedAt())
+                .shippingFee(order.getShippingFee())
                 .build();
     }
 

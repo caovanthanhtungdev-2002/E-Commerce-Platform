@@ -104,7 +104,8 @@ public class OrderServiceImpl implements OrderService {
             couponCode = couponResponse.getCode();
         }
 
-        double finalPrice = Math.max(0, totalPrice - discount);
+        double shippingFee = request.getShippingFee() != null ? request.getShippingFee() : 0.0;
+        double finalPrice = Math.max(0, totalPrice - discount) + shippingFee;
 
         List<OrderItem> items = selectedItems.stream().map(i -> {
             Product product = productRepository.findById(i.getProductId())
@@ -128,11 +129,12 @@ public class OrderServiceImpl implements OrderService {
                 .username(username)
                 .totalPrice(totalPrice)
                 .discount(discount)
+                .shippingFee(shippingFee)
                 .finalPrice(finalPrice)
                 .couponCode(couponCode)
                 .status("VNPAY".equalsIgnoreCase(request.getPaymentMethod())
-    ? OrderStatus.AWAITING_PAYMENT
-    : OrderStatus.PENDING)
+                        ? OrderStatus.AWAITING_PAYMENT
+                        : OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .receiverName(request.getReceiverName())
                 .phone(request.getPhone())
@@ -166,12 +168,11 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if (order.getStatus() != OrderStatus.PENDING
-        && order.getStatus() != OrderStatus.PAID
-        && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
+                && order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
             throw new BadRequestException("Chỉ xác nhận được đơn PENDING hoặc PAID");
         }
 
-        // Chỉ chuyển sang CONFIRMED — không nhảy sang PROCESSING
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
 
@@ -254,7 +255,7 @@ public class OrderServiceImpl implements OrderService {
     // lịch sử đơn hàng
     @Override
     public List<Order> getOrdersByUser(String username) {
-         return orderRepository.findByUsernameOrderByCreatedAtDesc(username);
+        return orderRepository.findByUsernameOrderByCreatedAtDesc(username);
     }
 
     // =========================================================
@@ -275,7 +276,7 @@ public class OrderServiceImpl implements OrderService {
             case "COMPLETED" -> {
                 if (order.getStatus() != OrderStatus.DELIVERED) {
                     throw new BadRequestException(
-                        "Chỉ xác nhận hoàn tất khi đơn đang DELIVERED");
+                            "Chỉ xác nhận hoàn tất khi đơn đang DELIVERED");
                 }
                 order.setStatus(OrderStatus.COMPLETED);
             }
@@ -283,26 +284,26 @@ public class OrderServiceImpl implements OrderService {
             case "RETURNED" -> {
                 if (order.getStatus() != OrderStatus.DELIVERED) {
                     throw new BadRequestException(
-                        "Chỉ yêu cầu trả hàng khi đơn đang DELIVERED");
+                            "Chỉ yêu cầu trả hàng khi đơn đang DELIVERED");
                 }
                 order.setStatus(OrderStatus.RETURNED);
             }
 
             case "CANCELLED" -> {
                 if (order.getStatus() != OrderStatus.PENDING
-            && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
-        throw new BadRequestException("Khách chỉ hủy được đơn khi đang PENDING hoặc AWAITING_PAYMENT");
-    }
-                // Hoàn lại tồn kho khi hủy
+                        && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
+                    throw new BadRequestException(
+                            "Khách chỉ hủy được đơn khi đang PENDING hoặc AWAITING_PAYMENT");
+                }
                 order.getItems().forEach(item ->
-                    inventoryService.releaseStock(
-                        item.getProduct().getId(), item.getQuantity())
+                        inventoryService.releaseStock(
+                                item.getProduct().getId(), item.getQuantity())
                 );
                 order.setStatus(OrderStatus.CANCELLED);
             }
 
             default -> throw new BadRequestException(
-                "Trạng thái không hợp lệ: " + status);
+                    "Trạng thái không hợp lệ: " + status);
         }
 
         orderRepository.save(order);

@@ -12,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -135,4 +136,17 @@ public ResponseEntity<Void> deliverOrder(@PathVariable Long orderId) {
     orderService.deliverOrder(orderId);
     return ResponseEntity.ok().build();
 }
+
+
+@PostMapping("/{id}/ship")
+public ResponseEntity<?> ship(
+    @PathVariable Long id,
+    @RequestParam String carrier,
+    @RequestParam String trackingNumber,
+    @RequestParam(required = false) String note
+) {
+    orderService.shipOrder(id, carrier, trackingNumber, note);
+    return ResponseEntity.ok().build();
+}
+
 }

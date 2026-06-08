@@ -111,25 +111,20 @@ export const ShipmentListPage: React.FC = () => {
               <tr><td colSpan={7} className={styles.center}>Không có đơn nào.</td></tr>
             )}
             {shipments?.content.map((s) => (
-              <tr key={s.id} className={styles.row}>
-                <td>
-                  <span className={styles.orderId}>#{s.orderId.slice(-8)}</span>
-                </td>
-                <td><code className={styles.code}>{s.trackingNumber}</code></td>
-                <td>{s.carrier}</td>
-                <td>{fmt(s.shippingFee)}</td>
-                <td><ShipmentStatusBadge status={s.status} /></td>
-                <td>{formatDate(s.createdAt)}</td>
-                <td>
-                  <button
-                    className={styles.btnView}
-                    onClick={() => navigate(`/admin/shipments/${s.id}`)}
-                  >
-                    Xem
-                  </button>
-                </td>
-              </tr>
-            ))}
+  <tr key={s.id} className={styles.row}>
+    <td><span className={styles.orderId}>#{String(s.orderId).slice(-8)}</span></td>
+    <td><code className={styles.code}>{s.trackingNumber}</code></td>
+    <td>{s.carrier || "Chưa xác định"}</td>
+    <td>{fmt(s.shippingFee ?? 0)}</td>
+    <td><ShipmentStatusBadge status={s.status} /></td>
+    <td>{formatDate(s.createdAt)}</td>
+    <td>
+      <button className={styles.btnView} onClick={() => navigate(`/admin/shipments/${s.id}`)}>
+        Xem
+      </button>
+    </td>
+  </tr>
+))}
           </tbody>
         </table>
       </div>

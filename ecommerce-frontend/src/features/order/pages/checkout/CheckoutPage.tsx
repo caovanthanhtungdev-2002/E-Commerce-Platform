@@ -9,6 +9,7 @@ import type { Address } from "@/features/user/types/userTypes";
 
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
+import { useShippingFee } from "@/hooks/useShippingFee";
 
 import styles from "./CheckoutPage.module.css";
 
@@ -18,6 +19,10 @@ const SS_METHOD = "checkout_method";
 export default function CheckoutPage() {
 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+
+  const { shippingFee, loadingFee } = useShippingFee(selectedAddress?.province ?? null);
+  const shippingFeeAmount = shippingFee?.fee ?? 0;
+
   const [coupon, setCoupon] = useState(
     () => sessionStorage.getItem(SS_COUPON) || ""
   );
@@ -68,10 +73,10 @@ export default function CheckoutPage() {
   // ── ITEMS ─────────────────────────────────────────
   const liveCartItems = items.filter((item) => item.selected);
   const checkoutItems = buyNowItem ? [buyNowItem] : liveCartItems;
-  const finalTotal = checkoutItems.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
-    0
-  );
+  const subtotal = checkoutItems.reduce(
+  (sum, item) => sum + Number(item.price) * item.quantity, 0
+);
+  const finalTotal = subtotal + shippingFeeAmount;
 
   const isValid = selectedAddress !== null && checkoutItems.length > 0;
 
@@ -96,6 +101,7 @@ export default function CheckoutPage() {
 
       await create({
         couponCode: coupon.trim() || undefined,
+        shippingFee: shippingFeeAmount,
         paymentMethod,
         receiverName: selectedAddress.receiverName,
         phone: selectedAddress.receiverPhone,
@@ -254,7 +260,11 @@ export default function CheckoutPage() {
                 <span className={styles.shippingMethodLabel}>Vận chuyển nhanh</span>
                 <span style={{ color: "#888", fontSize: "12px" }}>· Nhận hàng trong 2–3 ngày</span>
               </div>
-              <span className={styles.shippingMethodFree}>Miễn phí</span>
+              <span style={{ fontWeight: 600, fontSize: "14px", color: "#333" }}>
+  {loadingFee
+    ? "Đang tính..."
+    : shippingFee?.feeFormatted ?? "—"}
+</span>
             </div>
           </div>
 
@@ -287,11 +297,17 @@ export default function CheckoutPage() {
             <div className={styles.summaryBody}>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>Tạm tính ({checkoutItems.length} sản phẩm)</span>
-                <span className={styles.rowValue}>{formatCurrencyVND(finalTotal)}</span>
+                <span className={styles.rowValue}>{formatCurrencyVND(subtotal)}</span>
               </div>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>Phí vận chuyển</span>
-                <span style={{ color: "#26aa99", fontWeight: 600, fontSize: "14px" }}>Miễn phí</span>
+                <span style={{ fontWeight: 600, fontSize: "14px" }}>
+  {loadingFee
+    ? "Đang tính..."
+    : shippingFee
+      ? <span style={{ color: "#333" }}>{shippingFee.feeFormatted}</span>
+      : <span style={{ color: "#aaa" }}>—</span>}
+</span>
               </div>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>Giảm giá voucher</span>
@@ -341,12 +357,12 @@ export default function CheckoutPage() {
           </div>
 
           <button
-            className={styles.placeOrderBtn}
-            onClick={handleCheckout}
-            disabled={loading || !isValid}
-          >
-            {loading ? "Đang xử lý..." : `Đặt hàng · ${formatCurrencyVND(finalTotal)}`}
-          </button>
+  className={styles.placeOrderBtn}
+  onClick={handleCheckout}
+  disabled={loading || !isValid || loadingFee}  // thêm || loadingFee
+>
+  {loading ? "Đang xử lý..." : `Đặt hàng · ${formatCurrencyVND(finalTotal)}`}
+</button>
 
           <p className={styles.termsNote}>
             Bằng cách đặt hàng, bạn đồng ý với{" "}

@@ -57,10 +57,13 @@ export const adminOrderService = {
   await axiosInstance.patch(`/api/admin/orders/${id}/process`);
 },
 
-async ship(id: number, data: ShipOrderRequest) {
-  await axiosInstance.patch(`/api/admin/orders/${id}/ship`, data);
+async ship(id: number, carrier: string, trackingNumber: string, note?: string) {
+  await axiosInstance.post(
+    `/api/admin/orders/${id}/ship`,
+    null,
+    { params: { carrier, trackingNumber, note } }
+  );
 },
-
 async deliver(id: number) {
   await axiosInstance.patch(`/api/admin/orders/${id}/deliver`);
 },

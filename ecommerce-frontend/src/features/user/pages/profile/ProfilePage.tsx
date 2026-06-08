@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useUserStore } from "../../store/userStore";
 import { useOrderStore } from "@/features/order/store/orderStore";
+import { useAddressSelector } from "@/hooks/useAddressSelector";
+import LocationSelect from "@/features/location/components/LocationSelect";
 import { getImageSrc } from "@/utils/getImage";
 import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/dateUtils";
@@ -73,9 +75,10 @@ export default function ProfilePage() {
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [addressForm, setAddressForm] = useState(emptyAddress);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-  // Đơn hàng: filter tab
   const [orderFilterTab, setOrderFilterTab] = useState<OrderFilterTab>("ALL");
+
+  // ── LOCATION HOOK ─────────────────────────────────────────────────────────────
+  const loc = useAddressSelector();
 
   // ── EFFECTS ──────────────────────────────────────────────────────────────────
 
@@ -95,10 +98,14 @@ export default function ProfilePage() {
     return () => { document.body.style.overflow = ""; };
   }, [showAddressModal]);
 
-  // Fetch đơn hàng khi chuyển sang tab orders
   useEffect(() => {
     if (activeTab === "orders") fetchOrders();
   }, [activeTab]);
+
+  // Sync loc → addressForm
+  useEffect(() => { setAddressForm(f => ({ ...f, province: loc.province })); }, [loc.province]);
+  useEffect(() => { setAddressForm(f => ({ ...f, district: loc.district })); }, [loc.district]);
+  useEffect(() => { setAddressForm(f => ({ ...f, ward:     loc.ward     })); }, [loc.ward]);
 
   // ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -113,6 +120,9 @@ export default function ProfilePage() {
   const openAddModal = () => {
     setEditingAddress(null);
     setAddressForm(emptyAddress);
+    loc.setProvince("");
+    loc.setDistrict("");
+    loc.setWard("");
     setShowAddressModal(true);
   };
 
@@ -129,6 +139,9 @@ export default function ProfilePage() {
       country:       addr.country || "Vietnam",
       isDefault:     addr.isDefault,
     });
+    loc.setProvince(addr.province);
+    loc.setDistrict(addr.district);
+    loc.setWard(addr.ward);
     setShowAddressModal(true);
   };
 
@@ -141,7 +154,6 @@ export default function ProfilePage() {
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).slice(-2).join("").toUpperCase();
 
-  // Lọc đơn hàng theo filter tab
   const filteredOrders = orderFilterTab === "ALL"
     ? orders
     : orders.filter((o) => o.status === orderFilterTab);
@@ -197,7 +209,6 @@ export default function ProfilePage() {
           </div>
 
           <nav className={styles.nav}>
-            {/* Hồ sơ */}
             <div
               className={`${styles.navItem} ${activeTab === "profile" ? styles.active : ""}`}
               onClick={() => setActiveTab("profile")}
@@ -207,7 +218,6 @@ export default function ProfilePage() {
             </div>
             <div className={styles.navDivider}/>
 
-            {/* Đơn hàng */}
             <div
               className={`${styles.navItem} ${activeTab === "orders" ? styles.active : ""}`}
               onClick={() => setActiveTab("orders")}
@@ -221,7 +231,6 @@ export default function ProfilePage() {
             </div>
             <div className={styles.navDivider}/>
 
-            {/* Địa chỉ */}
             <div
               className={`${styles.navItem} ${activeTab === "address" ? styles.active : ""}`}
               onClick={() => setActiveTab("address")}
@@ -231,7 +240,6 @@ export default function ProfilePage() {
             </div>
             <div className={styles.navDivider}/>
 
-            {/* Mật khẩu */}
             <div
               className={`${styles.navItem} ${activeTab === "password" ? styles.active : ""}`}
               onClick={() => setActiveTab("password")}
@@ -312,25 +320,25 @@ export default function ProfilePage() {
           {/* ─ ORDERS TAB ─ */}
           {activeTab === "orders" && (
             <div className={styles.ordersWrap}>
-              {/* Filter tabs */}
-              <div className={styles.orderFilterBar}>
-                {ORDER_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    className={`${styles.orderFilterBtn} ${orderFilterTab === tab.key ? styles.orderFilterActive : ""}`}
-                    onClick={() => setOrderFilterTab(tab.key)}
-                  >
-                    {tab.label}
-                    {tab.key !== "ALL" && orders.filter((o) => o.status === tab.key).length > 0 && (
-                      <span className={styles.orderFilterCount}>
-                        {orders.filter((o) => o.status === tab.key).length}
-                      </span>
-                    )}
-                  </button>
-                ))}
+              <div className={styles.orderFilterScroll}>
+                <div className={styles.orderFilterBar}>
+                  {ORDER_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      className={`${styles.orderFilterBtn} ${orderFilterTab === tab.key ? styles.orderFilterActive : ""}`}
+                      onClick={() => setOrderFilterTab(tab.key)}
+                    >
+                      {tab.label}
+                      {tab.key !== "ALL" && orders.filter((o) => o.status === tab.key).length > 0 && (
+                        <span className={styles.orderFilterCount}>
+                          {orders.filter((o) => o.status === tab.key).length}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Order list */}
               {orderLoading ? (
                 <div className={styles.orderLoading}>
                   <span className={styles.spinner} style={{ borderTopColor: "#ee4d2d", borderColor: "rgba(238,77,45,.2)" }} />
@@ -366,7 +374,6 @@ export default function ProfilePage() {
                         className={styles.orderCard}
                         onClick={() => navigate(`/orders/${order.id}`)}
                       >
-                        {/* Card header */}
                         <div className={styles.orderCardHeader}>
                           <div className={styles.orderCardId}>
                             <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
@@ -383,7 +390,6 @@ export default function ProfilePage() {
                           </span>
                         </div>
 
-                        {/* Product preview */}
                         {firstItem && (
                           <div className={styles.orderPreview}>
                             <div className={styles.orderImgWrap}>
@@ -404,7 +410,6 @@ export default function ProfilePage() {
                           </div>
                         )}
 
-                        {/* Card footer */}
                         <div className={styles.orderCardFooter}>
                           {order.createdAt && (
                             <span className={styles.orderDate}>{formatDate(order.createdAt)}</span>
@@ -539,59 +544,103 @@ export default function ProfilePage() {
       {/* ── ADDRESS MODAL ── */}
       {showAddressModal && createPortal(
         <div className={styles.overlay} onClick={() => setShowAddressModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          {/* key đảm bảo hook loc reset mỗi lần mở địa chỉ khác */}
+          <div
+            className={styles.modal}
+            key={editingAddress?.id ?? "new"}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={styles.modalTitle}>
               {editingAddress ? "Cập nhật địa chỉ" : "Địa chỉ mới"}
             </div>
 
             <div className={styles.modalGrid}>
+              {/* Họ tên */}
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Họ tên người nhận</label>
-                <input className={styles.modalInput} value={addressForm.receiverName}
+                <input
+                  className={styles.modalInput}
+                  value={addressForm.receiverName}
                   placeholder="Nguyễn Văn A"
-                  onChange={(e) => setAddressForm({ ...addressForm, receiverName: e.target.value })} />
+                  onChange={(e) => setAddressForm({ ...addressForm, receiverName: e.target.value })}
+                />
               </div>
+
+              {/* SĐT */}
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Số điện thoại</label>
-                <input className={styles.modalInput} value={addressForm.receiverPhone}
+                <input
+                  className={styles.modalInput}
+                  value={addressForm.receiverPhone}
                   placeholder="0912 345 678"
-                  onChange={(e) => setAddressForm({ ...addressForm, receiverPhone: e.target.value })} />
+                  onChange={(e) => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
+                />
               </div>
+
+              {/* Số nhà / đường — full width */}
               <div className={`${styles.modalField} ${styles.full}`}>
                 <label className={styles.modalLabel}>Địa chỉ (số nhà, tên đường)</label>
-                <input className={styles.modalInput} value={addressForm.addressLine}
+                <input
+                  className={styles.modalInput}
+                  value={addressForm.addressLine}
                   placeholder="123 Đường Lê Lợi"
-                  onChange={(e) => setAddressForm({ ...addressForm, addressLine: e.target.value })} />
+                  onChange={(e) => setAddressForm({ ...addressForm, addressLine: e.target.value })}
+                />
               </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Phường / Xã</label>
-                <input className={styles.modalInput} value={addressForm.ward}
-                  placeholder="Phường Bến Nghé"
-                  onChange={(e) => setAddressForm({ ...addressForm, ward: e.target.value })} />
-              </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Quận / Huyện</label>
-                <input className={styles.modalInput} value={addressForm.district}
-                  placeholder="Quận 1"
-                  onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })} />
-              </div>
+
+              {/* Tỉnh / Thành phố — chọn trước để load huyện */}
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Tỉnh / Thành phố</label>
-                <input className={styles.modalInput} value={addressForm.province}
-                  placeholder="TP. Hồ Chí Minh"
-                  onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })} />
+                <LocationSelect
+                  placeholder="Chọn Tỉnh / Thành phố"
+                  value={loc.province}
+                  options={loc.provinces}
+                  onChange={loc.setProvince}
+                />
               </div>
+
+              {/* Quận / Huyện */}
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Quận / Huyện</label>
+                <LocationSelect
+                  placeholder="Chọn Quận / Huyện"
+                  value={loc.district}
+                  options={loc.districts}
+                  onChange={loc.setDistrict}
+                  disabled={!loc.province}
+                />
+              </div>
+
+              {/* Phường / Xã */}
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Phường / Xã</label>
+                <LocationSelect
+                  placeholder="Chọn Phường / Xã"
+                  value={loc.ward}
+                  options={loc.wards}
+                  onChange={loc.setWard}
+                  disabled={!loc.district}
+                />
+              </div>
+
+              {/* Mã bưu chính */}
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Mã bưu chính</label>
-                <input className={styles.modalInput} value={addressForm.postalCode}
+                <input
+                  className={styles.modalInput}
+                  value={addressForm.postalCode}
                   placeholder="700000"
-                  onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })} />
+                  onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                />
               </div>
             </div>
 
             <label className={styles.checkLabel}>
-              <input type="checkbox" checked={addressForm.isDefault}
-                onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={addressForm.isDefault}
+                onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+              />
               Đặt làm địa chỉ mặc định
             </label>
 
