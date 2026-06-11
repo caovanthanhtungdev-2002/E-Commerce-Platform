@@ -92,20 +92,42 @@ public class OrderServiceImpl implements OrderService {
                 .mapToDouble(i -> i.getPrice() * i.getQuantity())
                 .sum();
 
-        double discount = 0;
-        String couponCode = null;
-
-        if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
-            ApplyCouponRequest couponRequest = new ApplyCouponRequest();
-            couponRequest.setCode(request.getCouponCode());
-            couponRequest.setOrderAmount(totalPrice);
-            CouponResponse couponResponse = couponService.applyCoupon(couponRequest);
-            discount = couponResponse.getDiscount();
-            couponCode = couponResponse.getCode();
-        }
-
+        // khai báo shippingFee trước để dùng trong applyCoupon (FREESHIP)
         double shippingFee = request.getShippingFee() != null ? request.getShippingFee() : 0.0;
-        double finalPrice = Math.max(0, totalPrice - discount) + shippingFee;
+
+        double discount = 0;
+double shippingDiscount = 0;
+String couponCode = null;
+
+if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
+    ApplyCouponRequest couponRequest = new ApplyCouponRequest();
+    couponRequest.setCode(request.getCouponCode());
+    couponRequest.setOrderAmount(totalPrice);
+    couponRequest.setShippingFee(shippingFee);
+    CouponResponse couponResponse = couponService.applyCoupon(couponRequest);
+    couponCode = couponResponse.getCode();
+    couponService.redeemCoupon(request.getCouponCode());
+
+    if ("FREESHIP".equalsIgnoreCase(couponResponse.getType())) {
+        shippingDiscount = couponResponse.getDiscount();
+    } else {
+        discount = couponResponse.getDiscount();
+    }
+}
+
+if (request.getFreeshipCode() != null && !request.getFreeshipCode().isEmpty()) {
+    ApplyCouponRequest freeshipRequest = new ApplyCouponRequest();
+    freeshipRequest.setCode(request.getFreeshipCode());
+    freeshipRequest.setOrderAmount(totalPrice);
+    freeshipRequest.setShippingFee(shippingFee);
+    CouponResponse freeshipResponse = couponService.applyCoupon(freeshipRequest);
+    if ("FREESHIP".equalsIgnoreCase(freeshipResponse.getType())) {
+        shippingDiscount = freeshipResponse.getDiscount();
+        couponService.redeemCoupon(request.getFreeshipCode());
+    }
+}
+
+double finalPrice = Math.max(0, totalPrice - discount) + Math.max(0, shippingFee - shippingDiscount);
 
         List<OrderItem> items = selectedItems.stream().map(i -> {
             Product product = productRepository.findById(i.getProductId())
@@ -140,6 +162,7 @@ public class OrderServiceImpl implements OrderService {
                 .phone(request.getPhone())
                 .address(request.getAddress())
                 .paymentMethod(request.getPaymentMethod())
+                .shippingDiscount(shippingDiscount)
                 .build();
 
         items.forEach(i -> i.setOrder(order));

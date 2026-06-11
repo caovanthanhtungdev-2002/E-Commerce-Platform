@@ -33,6 +33,7 @@ export interface Order {
   username: string;        
   totalPrice: number;
   shippingFee: number;
+  shippingDiscount?: number;
   finalPrice: number;
   discount: number;
   couponCode?: string;
@@ -58,4 +59,5 @@ export interface CreateOrderRequest {
   selectedProductIds: number[];
   buyNowItems?: BuyNowItem[];
   shippingFee?: number;
+  freeshipCode?: string;
 }

@@ -61,6 +61,7 @@ private String paymentMethod;
 
 private Double shippingFee = 0.0;  
 
+private Double shippingDiscount = 0.0;
     @Column
     private LocalDateTime paidAt;
 

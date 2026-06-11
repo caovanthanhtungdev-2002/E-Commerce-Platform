@@ -17,7 +17,8 @@ public class CreateOrderRequest {
     private String paymentMethod;
     
     private Double shippingFee = 0.0; 
-
+    
+private String freeshipCode;
     private List<Long> selectedProductIds;
 
     private List<BuyNowItem> buyNowItems;

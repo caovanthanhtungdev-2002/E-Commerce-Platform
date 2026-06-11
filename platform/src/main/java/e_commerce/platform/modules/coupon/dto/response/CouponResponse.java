@@ -9,6 +9,7 @@ import lombok.Data;
 public class CouponResponse {
 
     private String code;
+    private String type;         // PERCENTAGE | FREESHIP | FIXED
     private double discount;
     private double finalAmount;
 }

@@ -1,5 +1,6 @@
 package e_commerce.platform.modules.coupon.entity;
 
+import e_commerce.platform.modules.coupon.enums.CouponType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,10 +21,15 @@ public class Coupon {
     @Column(unique = true, nullable = false)
     private String code;
 
-    // % giảm giá (0 - 100)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private CouponType type = CouponType.PERCENTAGE;
+
+    // % giảm giá (0 - 100), chỉ dùng khi type = PERCENTAGE
     private double discountPercent;
 
-    // giảm tối đa (vd: max 50k)
+    // giảm tối đa (vd: max 50k), chỉ dùng khi type = PERCENTAGE hoặc FIXED
     private double maxDiscount;
 
     // giá tối thiểu để áp dụng

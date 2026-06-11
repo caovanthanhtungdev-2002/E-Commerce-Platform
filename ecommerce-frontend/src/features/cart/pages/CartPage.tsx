@@ -139,10 +139,7 @@ export default function CartPage() {
                   <span>Tạm tính</span>
                   <span>{formatCurrencyVND(total)}</span>
                 </div>
-                <div className={styles.summaryRow}>
-                  <span>Phí vận chuyển</span>
-                  <span className={styles.free}>Miễn phí</span>
-                </div>
+                
                 <div className={styles.summaryDivider}></div>
                 <div className={styles.summaryTotal}>
                   <span>Tổng cộng</span>
@@ -163,7 +160,7 @@ export default function CartPage() {
 
                 <div className={styles.summaryBadges}>
                   <div className={styles.summaryBadge}>🔒 Thanh toán bảo mật</div>
-                  <div className={styles.summaryBadge}>🚚 Giao hàng miễn phí</div>
+                  <div className={styles.summaryBadge}>🚚 Giao hàng nhanh chóng</div>
                   <div className={styles.summaryBadge}>🔄 Đổi trả 30 ngày</div>
                 </div>
               </div>

@@ -27,6 +27,7 @@ public class OrderMapper {
                 .createdAt(order.getCreatedAt())   
                 .updatedAt(order.getUpdatedAt())
                 .shippingFee(order.getShippingFee())
+                .shippingDiscount(order.getShippingDiscount())
                 .build();
     }
 

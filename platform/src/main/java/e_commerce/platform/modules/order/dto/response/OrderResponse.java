@@ -28,6 +28,7 @@ private String address;
 private String paymentMethod;
 
 private Double shippingFee;
+private Double shippingDiscount;
 
  private LocalDateTime createdAt;
  private LocalDateTime updatedAt;

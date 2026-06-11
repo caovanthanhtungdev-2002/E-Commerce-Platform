@@ -12,4 +12,6 @@ public class ApplyCouponRequest {
 
     @Min(1)
     private double orderAmount;
+
+    private double shippingFee; // dùng cho FREESHIP, mặc định 0
 }

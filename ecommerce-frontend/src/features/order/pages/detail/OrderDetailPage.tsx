@@ -240,24 +240,27 @@ export default function OrderDetailPage() {
         {currentOrder.items.map((item) => (
           <OrderItemCard key={item.productId} item={item} />
         ))}
-        <div className={styles.summary}>
+       <div className={styles.summary}>
   <div className={styles.sumRow}>
     <span>Tạm tính</span>
     <span>{formatCurrencyVND(currentOrder.totalPrice)}</span>
   </div>
-  {currentOrder.discount > 0 && (
-    <div className={styles.sumRow}>
-      <span>Giảm giá</span>
-      <span className={styles.discount}>
-        -{formatCurrencyVND(currentOrder.discount)}
-      </span>
-    </div>
-  )}
-  {/* ← thêm dòng này */}
   <div className={styles.sumRow}>
     <span>Phí vận chuyển</span>
     <span>{formatCurrencyVND(currentOrder.shippingFee ?? 0)}</span>
   </div>
+  {currentOrder.discount > 0 && (
+    <div className={styles.sumRow}>
+      <span>Giảm giá voucher</span>
+      <span className={styles.discount}>-{formatCurrencyVND(currentOrder.discount)}</span>
+    </div>
+  )}
+  {(currentOrder.shippingDiscount ?? 0) > 0 && (
+    <div className={styles.sumRow}>
+      <span>Giảm phí vận chuyển</span>
+      <span className={styles.discount}>-{formatCurrencyVND(currentOrder.shippingDiscount!)}</span>
+    </div>
+  )}
   <div className={styles.sumFinal}>
     <span>Tổng thanh toán</span>
     <span>{formatCurrencyVND(currentOrder.finalPrice)}</span>

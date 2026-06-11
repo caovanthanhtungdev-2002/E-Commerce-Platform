@@ -58,6 +58,7 @@ public class SecurityConfig {
                     // Public API
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/oauth2/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/coupons/apply").authenticated() 
 
                     // Swagger
                     .requestMatchers(

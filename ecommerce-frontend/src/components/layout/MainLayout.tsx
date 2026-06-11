@@ -335,16 +335,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                             onClick={() => { setHoveredCatId(null); setHoveredSubId(null); }}
                           >
                             <div className={styles.megaSubIcon}>
-                              {sub.name.includes("Gaming") ? "🎮" :
-                               sub.name.includes("Văn phòng") ? "💼" :
-                               sub.name.includes("AI") ? "🤖" :
-                               sub.name.includes("Hãng") ? "🏷️" :
-                               sub.name.includes("Phụ kiện") ? "🔧" :
-                               sub.name.includes("Điện thoại") ? "📱" :
-                               sub.name.includes("Màn hình") ? "🖥️" :
-                               sub.name.includes("Bàn phím") ? "⌨️" :
-                               sub.name.includes("Chuột") ? "🖱️" :
-                               sub.name.includes("Tai nghe") ? "🎧" : "📦"}
+                              {sub.name.includes("Gaming") ? "" :
+                               sub.name.includes("Văn phòng") ? "" :
+                               sub.name.includes("AI") ? "" :
+                               sub.name.includes("Hãng") ? "" :
+                               sub.name.includes("Phụ kiện") ? "" :
+                               sub.name.includes("Điện thoại") ? "" :
+                               sub.name.includes("Màn hình") ? "" :
+                               sub.name.includes("Bàn phím") ? "" :
+                               sub.name.includes("Chuột") ? "" :
+                               sub.name.includes("Tai nghe") ? "" : ""}
                             </div>
                             <div className={styles.megaSubText}>
                               <span className={styles.megaSubName}>{sub.name}</span>
