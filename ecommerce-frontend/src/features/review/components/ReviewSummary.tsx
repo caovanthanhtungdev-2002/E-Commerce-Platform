@@ -4,20 +4,14 @@ import type { ReviewSummaryResponse } from "../types/reviewTypes";
 
 interface ReviewSummaryProps {
   summary: ReviewSummaryResponse;
-  starCounts?: Record<number, number>; // optional: count per star level
 }
 
-const ReviewSummary: React.FC<ReviewSummaryProps> = ({ summary, starCounts }) => {
+const ReviewSummary: React.FC<ReviewSummaryProps> = ({ summary }) => {
   const avg = summary.avgRating ?? 0;
   const total = summary.totalReviews;
 
-  // Fallback proportional distribution if no real counts
   const getCount = (star: number) => {
-    if (starCounts?.[star] !== undefined) return starCounts[star];
-    // rough proportional estimate from avg & total
-    if (total === 0) return 0;
-    const weights: Record<number, number> = { 5: 0.6, 4: 0.2, 3: 0.1, 2: 0.05, 1: 0.05 };
-    return Math.round(total * (weights[star] ?? 0));
+    return summary.starCounts?.[star] ?? 0;
   };
 
   const getWidth = (star: number) => {

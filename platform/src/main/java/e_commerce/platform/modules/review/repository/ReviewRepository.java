@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
@@ -19,4 +20,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     
     @Query("SELECT COUNT(r) FROM Review r WHERE r.productId = :productId")
     long countByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT r.rating, COUNT(r) FROM Review r WHERE r.productId = :productId GROUP BY r.rating")
+List<Object[]> countGroupByStar(@Param("productId") Long productId);
 }

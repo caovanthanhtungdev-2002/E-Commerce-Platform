@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -81,14 +84,19 @@ boolean hasPurchased = orderRepository.hasPurchased(
                 .build()
 );
     }
+
 @Override
 @Cacheable(value = "reviewSummary", key = "#productId")
 public ReviewSummaryResponse getSummary(Long productId) {
-
     Double avg = reviewRepository.getAverageRating(productId);
     long total = reviewRepository.countByProductId(productId);
 
-    return new ReviewSummaryResponse(avg, total);
+    Map<Integer, Long> starCounts = new HashMap<>();
+    for (int i = 1; i <= 5; i++) starCounts.put(i, 0L);
+    reviewRepository.countGroupByStar(productId)
+        .forEach(row -> starCounts.put((Integer) row[0], (Long) row[1]));
+
+    return new ReviewSummaryResponse(avg, total, starCounts);
 }
 
     @Override

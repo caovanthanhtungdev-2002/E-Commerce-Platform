@@ -11,6 +11,7 @@ export interface ReviewResponse {
 export interface ReviewSummaryResponse {
   avgRating: number | null;
   totalReviews: number;
+  starCounts: Record<number, number>;
 }
 
 export interface CreateReviewRequest {
