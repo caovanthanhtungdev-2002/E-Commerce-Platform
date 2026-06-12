@@ -1,8 +1,11 @@
 
 package e_commerce.platform.modules.product.mapper;
 
+import java.util.stream.Collectors;
+
 import e_commerce.platform.modules.product.dto.response.ProductResponse;
 import e_commerce.platform.modules.product.entity.Product;
+import e_commerce.platform.modules.product.entity.ProductImage;
 
 public class ProductMapper {
 
@@ -17,6 +20,9 @@ public class ProductMapper {
                         ? product.getCategory().getName() : null)
                 .avgRating(product.getAvgRating())
                 .reviewCount(product.getReviewCount())
+                .images(product.getImages().stream()
+                .map(ProductImage::getUrl)
+                .collect(Collectors.toList()))
                 .build();
     }
 }

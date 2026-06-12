@@ -4,7 +4,10 @@ package e_commerce.platform.modules.product.entity;
 import e_commerce.platform.modules.category.entity.Category;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "products")
@@ -51,4 +54,9 @@ public class Product {
     private String createdBy;
 
     private String updatedBy;
+
+    
+@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+@OrderBy("sortOrder ASC")
+private List<ProductImage> images = new ArrayList<>();
 }

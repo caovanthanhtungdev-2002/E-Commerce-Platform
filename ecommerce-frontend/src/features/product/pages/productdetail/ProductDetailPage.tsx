@@ -7,7 +7,15 @@ import { formatCurrencyVND } from "@/utils/formatCurrency";
 import { getImageSrc } from "@/utils/getImage";
 import { useToast } from "@/components/Toast";
 import type { Product } from "@/features/product/types/productTypes";
+import ReviewPage from "@/features/review/pages/ReviewPage";
 import styles from "./ProductDetailPage.module.css";
+
+const DEFAULT_COLORS = [
+  { label: "Đen", hex: "#1a1a1a" },
+  { label: "Trắng", hex: "#f0f0f0" },
+  { label: "Xanh Navy", hex: "#1e3a5f" },
+  { label: "Đỏ", hex: "#cc2200" },
+];
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +25,9 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addingCart, setAddingCart] = useState(false);
+  const [activeTab, setActiveTab] = useState<"desc" | "spec">("desc");
+  const [activeImg, setActiveImg] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
   const { addToCart } = useCartStore();
   const { user } = useAuthStore();
@@ -25,25 +36,30 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (id) {
       setLoading(true);
-      productService.getById(Number(id))
-        .then((data) => { setProduct(data); setLoading(false); })
-        .catch(() => { setLoading(false); });
+      productService
+        .getById(Number(id))
+        .then((data) => {
+          setProduct(data);
+          const colors = data.colors?.length ? data.colors : DEFAULT_COLORS;
+          setSelectedColor(colors[0]?.label ?? null);
+          setLoading(false);
+        })
+        .catch(() => {
+          setLoading(false);
+        });
     }
   }, [id]);
 
   const handleAddToCart = async () => {
     if (!product) return;
-
-    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang này
     if (!user) {
       navigate(`/login?next=${location.pathname}`);
       return;
     }
-
     setAddingCart(true);
     try {
       await addToCart(product.id, quantity);
-      showToast(`Đã thêm "${product.name}" vào giỏ hàng! 🛒`, "success");
+      showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, "success");
     } catch {
       showToast("Thêm vào giỏ hàng thất bại", "error");
     } finally {
@@ -53,13 +69,10 @@ export default function ProductDetailPage() {
 
   const handleBuyNow = () => {
     if (!product) return;
-
-    // ✅ Shopee logic: chưa login → redirect về login, sau đó quay lại trang này
     if (!user) {
       navigate(`/login?next=${location.pathname}`);
       return;
     }
-
     navigate("/checkout", {
       state: {
         buyNowItem: {
@@ -68,172 +81,317 @@ export default function ProductDetailPage() {
           imageUrl: product.imageUrl,
           quantity,
           price: product.price,
+          color: selectedColor,
         },
       },
     });
   };
 
-  if (loading) return (
-    <div className={styles.loadingWrap}>
-      <div className={styles.spinner}></div>
-      <p>Đang tải sản phẩm...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className={styles.loadingWrap}>
+        <div className={styles.spinner} />
+        <p>Đang tải sản phẩm...</p>
+      </div>
+    );
+  }
 
-  if (!product) return (
-    <div className={styles.notFound}>
-      <div className={styles.notFoundIcon}>😕</div>
-      <h2>Không tìm thấy sản phẩm</h2>
-      <Link to="/products" className={styles.backBtn}>← Quay lại danh sách</Link>
-    </div>
-  );
+  if (!product) {
+    return (
+      <div className={styles.notFound}>
+        <div className={styles.notFoundIcon}>😕</div>
+        <h2>Không tìm thấy sản phẩm</h2>
+        <Link to="/products" className={styles.backBtn}>
+          ← Quay lại danh sách
+        </Link>
+      </div>
+    );
+  }
 
-  const discountedPrice = Math.floor(product.price * 0.92);
+  
+  const originalPrice = Math.floor(product.price * 1.08);
+  const fullStars = Math.round(product.avgRating || 0);
+  const colorOptions =
+    product.colors && product.colors.length > 0
+      ? product.colors
+      : DEFAULT_COLORS;
+  const gallery =
+    product.images && product.images.length > 0
+      ? product.images
+      : [product.imageUrl];
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* BREADCRUMB */}
-        <div className={styles.breadcrumb}>
-          <Link to="/">Trang chủ</Link>
-          <span>/</span>
-          <Link to="/products">Sản phẩm</Link>
+    <div className={styles.pageWrapper}>
+      {/* BREADCRUMB */}
+      <div className={styles.breadcrumbBar}>
+        <div className={styles.breadcrumbInner}>
+          <Link to="/" className={styles.bcLink}>
+            Trang chủ
+          </Link>
+          <span className={styles.bcSep}>›</span>
+          <Link to="/products" className={styles.bcLink}>
+            Sản phẩm
+          </Link>
           {product.categoryName && (
             <>
-              <span>/</span>
-              <Link to={`/products?categoryName=${encodeURIComponent(product.categoryName)}`}>{product.categoryName}</Link>
+              <span className={styles.bcSep}>›</span>
+              <Link
+                to={`/products?categoryName=${encodeURIComponent(product.categoryName)}`}
+                className={styles.bcLink}
+              >
+                {product.categoryName}
+              </Link>
             </>
           )}
-          <span>/</span>
-          <span>{product.name}</span>
+          <span className={styles.bcSep}>›</span>
+          <span className={styles.bcCurrent}>{product.name}</span>
         </div>
+      </div>
 
-        {/* MAIN DETAIL */}
-        <div className={styles.detail}>
-          {/* LEFT - IMAGE */}
-          <div className={styles.imageSection}>
-            <div className={styles.mainImage}>
+      <div className={styles.container}>
+        {/* TOP CARD */}
+        <div className={styles.topCard}>
+          {/* LEFT — IMAGE */}
+          <div className={styles.imageCol}>
+            <div className={styles.mainImageWrap}>
               <img
-                src={getImageSrc(product.imageUrl)}
+                src={getImageSrc(gallery[activeImg])}
                 alt={product.name}
-                onError={(e) => { e.currentTarget.src = "https://placehold.co/500x500/f5f5f5/999?text=SP"; }}
+                className={styles.mainImage}
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://placehold.co/500x500/f5f5f5/999?text=SP";
+                }}
               />
+              <div className={styles.discountRibbon}>-8%</div>
             </div>
-            {/* BADGES */}
-            <div className={styles.badges}>
-              <div className={styles.badge} style={{ background: "#fff5f5", color: "#d70018", borderColor: "#ffcccc" }}>
-                🔄 1 đổi 1 trong 30 ngày
-              </div>
-              <div className={styles.badge} style={{ background: "#f0fff4", color: "#16a34a", borderColor: "#bbf7d0" }}>
-                🛡️ Bảo hành 12 tháng
-              </div>
-              <div className={styles.badge} style={{ background: "#fff7ed", color: "#d97706", borderColor: "#fed7aa" }}>
-                🚚 Giao hàng miễn phí
-              </div>
+
+            {/* thumbnail strip */}
+            <div className={styles.thumbStrip}>
+              {gallery.map((url, i) => (
+                <div
+                  key={i}
+                  className={`${styles.thumb} ${i === activeImg ? styles.thumbActive : ""}`}
+                  onClick={() => setActiveImg(i)}
+                >
+                  <img
+                    src={getImageSrc(url)}
+                    alt={`Ảnh ${i + 1}`}
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://placehold.co/80x80/f5f5f5/999?text=SP";
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* RIGHT - INFO */}
-          <div className={styles.infoSection}>
+          {/* RIGHT — INFO */}
+          <div className={styles.infoCol}>
             {product.categoryName && (
               <span className={styles.categoryTag}>{product.categoryName}</span>
             )}
+
             <h1 className={styles.productName}>{product.name}</h1>
 
-            {/* RATING */}
+            {/* rating + sold */}
             <div className={styles.ratingRow}>
+              <span className={styles.ratingNum}>
+                {product.avgRating?.toFixed(1) || "—"}
+              </span>
               <div className={styles.stars}>
-                {[1,2,3,4,5].map((s) => (
-                  <span key={s} style={{ color: s <= Math.round(product.avgRating || 0) ? "#f59e0b" : "#ddd" }}>★</span>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span
+                    key={s}
+                    className={
+                      s <= fullStars ? styles.starFilled : styles.starEmpty
+                    }
+                  >
+                    ★
+                  </span>
                 ))}
               </div>
-              <span className={styles.ratingNum}>{product.avgRating?.toFixed(1) || "Chưa có"}</span>
-             {product.reviewCount ? (
-  <Link 
-    to={`/products/${product.id}/reviews`} 
-    className={styles.reviewCount}
-  >
-    ({product.reviewCount} đánh giá)
-  </Link>
-) : null}
+              {product.reviewCount ? (
+                <a href="#review-section" className={styles.reviewLink}>
+                  {product.reviewCount} Đánh Giá
+                </a>
+              ) : (
+                <a href="#review-section" className={styles.reviewLink}>
+                  Chưa có đánh giá
+                </a>
+              )}
+              <span className={styles.dot}>|</span>
+              <span className={styles.soldCount}>Đã Bán 1.2k</span>
             </div>
 
-            {/* PRICE */}
+            {/* price box */}
             <div className={styles.priceBox}>
-              <div className={styles.currentPrice}>{formatCurrencyVND(product.price)}</div>
-              <div className={styles.oldPrice}>{formatCurrencyVND(Math.floor(product.price * 1.08))}</div>
-              <div className={styles.discountBadge}>-8%</div>
+              <span className={styles.oldPrice}>
+                {formatCurrencyVND(originalPrice)}
+              </span>
+              <span className={styles.currentPrice}>
+                {formatCurrencyVND(product.price)}
+              </span>
+              <span className={styles.saveBadge}>Tiết kiệm 8%</span>
             </div>
 
-            <div className={styles.installment}>
-              💳 Trả góp từ <strong>{formatCurrencyVND(Math.floor(product.price / 12))}/tháng</strong> — 0% lãi suất
-            </div>
-
-            {/* DESCRIPTION */}
-            {product.description && (
-              <div className={styles.descBox}>
-                <h3>Mô tả sản phẩm</h3>
-                <p>{product.description}</p>
+            {/* shipping */}
+            <div className={styles.shippingRow}>
+              <span className={styles.shippingLabel}>Vận Chuyển</span>
+              <div className={styles.shippingInfo}>
+                <span className={styles.freeship}></span>
+                <span className={styles.shippingNote}>
+                  Nhận hàng trong 2–4 ngày
+                </span>
               </div>
-            )}
+            </div>
 
-            {/* QUANTITY */}
+            {/* COLOR SELECTOR */}
+            <div className={styles.colorRow}>
+              <span className={styles.colorLabel}>Màu Sắc</span>
+              <div className={styles.colorOptions}>
+                {colorOptions.map((c) => (
+                  <button
+                    key={c.label}
+                    className={`${styles.colorOption} ${
+                      selectedColor === c.label ? styles.colorOptionActive : ""
+                    }`}
+                    onClick={() => setSelectedColor(c.label)}
+                    title={c.label}
+                  >
+                    <span
+                      className={styles.colorSwatch}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span className={styles.colorName}>{c.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* quantity */}
             <div className={styles.qtyRow}>
-              <span className={styles.qtyLabel}>Số lượng:</span>
+              <span className={styles.qtyLabel}>Số Lượng</span>
               <div className={styles.qtyControl}>
                 <button
                   className={styles.qtyBtn}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={quantity <= 1}
-                >−</button>
-                <span className={styles.qtyNum}>{quantity}</span>
+                >
+                  −
+                </button>
+                <input
+                  className={styles.qtyInput}
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (!isNaN(v) && v >= 1) setQuantity(v);
+                  }}
+                />
                 <button
                   className={styles.qtyBtn}
                   onClick={() => setQuantity((q) => q + 1)}
-                >+</button>
+                >
+                  +
+                </button>
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
+            {/* action buttons */}
             <div className={styles.actions}>
+              <button
+                className={styles.addCartBtn}
+                onClick={handleAddToCart}
+                disabled={addingCart}
+              >
+                🛒 {addingCart ? "Đang thêm..." : "Thêm Vào Giỏ Hàng"}
+              </button>
               <button
                 className={styles.buyNowBtn}
                 onClick={handleBuyNow}
                 disabled={addingCart}
               >
-                ⚡ Mua ngay
-              </button>
-              <button
-                className={`${styles.addCartBtn} ${addingCart ? styles.adding : ""}`}
-                onClick={handleAddToCart}
-                disabled={addingCart}
-              >
-                {addingCart ? "Đang thêm..." : "🛒 Thêm vào giỏ"}
+                Mua Ngay
               </button>
             </div>
 
-            <div className={styles.totalPreview}>
-              Tổng: <strong>{formatCurrencyVND(product.price * quantity)}</strong>
-            </div>
-
-            {/* POLICIES */}
-            <div className={styles.policies}>
+            {/* policies */}
+            <div className={styles.policiesRow}>
               {[
-                { icon: "✅", text: "Hàng chính hãng 100%" },
-                { icon: "🔄", text: "Đổi trả trong 30 ngày nếu lỗi NSX" },
-                { icon: "🛡️", text: "Bảo hành tại nhà 1 đổi 1 năm đầu" },
-                { icon: "💳", text: "Thanh toán linh hoạt, trả góp 0%" },
+                { icon: "🛡️", text: "Hàng chính hãng 100%" },
+                { icon: "🔄", text: "Đổi trả 30 ngày" },
+                { icon: "💳", text: "Trả góp 0%" },
+                { icon: "🎁", text: "Quà tặng hấp dẫn" },
               ].map((p, i) => (
                 <div key={i} className={styles.policyItem}>
-                  <span>{p.icon}</span>
-                  <span>{p.text}</span>
+                  <span className={styles.policyIcon}>{p.icon}</span>
+                  <span className={styles.policyText}>{p.text}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* BOTTOM CARD: tabs */}
+        <div className={styles.bottomCard}>
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${activeTab === "desc" ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab("desc")}
+            >
+              Mô Tả Sản Phẩm
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === "spec" ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab("spec")}
+            >
+              Thông Số Kỹ Thuật
+            </button>
+          </div>
+
+          <div className={styles.tabContent}>
+            {activeTab === "desc" ? (
+              <div className={styles.descText}>
+                {product.description ||
+                  "Chưa có mô tả chi tiết cho sản phẩm này."}
+              </div>
+            ) : (
+              <table className={styles.specTable}>
+                <tbody>
+                  {[
+                    ["Danh mục", product.categoryName || "—"],
+                    ["Mã sản phẩm", `#${product.id}`],
+                    [
+                      "Màu sắc",
+                      colorOptions.map((c) => c.label).join(", ") || "—",
+                    ],
+                    ["Trạng thái", "Còn hàng"],
+                    ["Xuất xứ", "Việt Nam"],
+                    ["Bảo hành", "12 tháng"],
+                  ].map(([label, value]) => (
+                    <tr key={label} className={styles.specRow}>
+                      <td className={styles.specLabel}>{label}</td>
+                      <td className={styles.specValue}>{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* REVIEW SECTION */}
+        <div className={styles.reviewCard}>
+          <ReviewPage
+            productId={product.id}
+            productName={product.name}
+            isLoggedIn={!!user}
+          />
+        </div>
       </div>
     </div>
   );
 }
-                      

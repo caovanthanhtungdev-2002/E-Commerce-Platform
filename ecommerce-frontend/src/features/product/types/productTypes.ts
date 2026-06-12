@@ -4,9 +4,11 @@ export interface Product {
   description?: string;
   price: number;
   imageUrl?: string;
+  images?: string[];
   categoryName?: string;
   avgRating?: number;
   reviewCount?: number;
+  colors?: { label: string; hex: string }[];
 }
 
 export interface PageResponse<T> {
